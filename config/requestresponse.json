@@ -1,0 +1,20 @@
+{
+	"response": [
+	{
+        "name": "00-status",
+		"type": "body",
+		"lookupWith": "regex",
+		"lookupValue": "status",
+        "pause": "100",
+		"contents": "{\"response\": [{\"status\": \"OK\",\"message\": \"TNS Account Service/CAM Stub - status OK\",\"version\": \"%stubName%\",\"timestamp\": \"%todaysDate%\",\"GUID\": \"%GUID%\",\"Number\": \"%tokenNumber%\",\"AlphaNumer\": \"%sessionId%\"}]}"
+	},
+	{
+        "name": "01-create-session",
+		"type": "body",
+		"lookupWith": "regex",
+		"lookupValue": "merchant/TESTKENOCOM01/order/(.+?)/transaction",
+        "pause": "100",
+		"contents": "{\"result\": \"SUCCESS\",\"session\": {\"aes256Key\": \"PzUx0tR45OSdyQXzP4Y3es4lpp69KpsmLUYNC\/Qfk80=\",\"updateStatus\": \"NO_UPDATE\",\"authenticationLimit\": 5,\"id\": \"SESSION%sessionId%\",\"version\": \"872ec53701\"},\"merchant\": \"TESTKENOCOM01\"}"
+	}
+	]
+}

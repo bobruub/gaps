@@ -1,0 +1,28 @@
+{
+	"__comment1__": "any variables (e.g. redis lookups) which reference other variables must be set at the BOTTOM of the file.",
+	"config": [
+		{
+			"name" : "core",
+			"details" : [{
+        "stubName": "MQ Stub",
+        "threadPool": "100"
+    		}]
+		},
+    {
+			"name" : "rabbitmq",
+			"details" : [{
+        "mqHostName" : "localhost",
+        "mqHostPort" : "5672",
+        "mqInQueue" : "testQueue",
+        "mqOutQueue" : "outQueue"    		
+        }]
+		},
+    {
+			"name" : "redisX",
+			"details" : [{
+        "redisHostName" : "localhost",
+        "redisHostPort" : "6379"
+        }]
+		}
+  ]
+} 

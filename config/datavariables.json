@@ -1,0 +1,45 @@
+{
+	"__comment1__": "any variables (e.g. redis lookups) which reference other variables must be set at the BOTTOM of the file.",
+	"variable": [
+		{
+			"name" : "tokenNumber",
+			"type" : "number",
+			"allowBypass": "true",
+			"format" : [{
+					"length" : 16					
+				}]
+		},
+		{
+			"name" : "stubName",
+			"type" : "string",
+			"allowBypass": "true",
+			"format" : [{
+					"value" : "mqStub version 1.0"					
+				}]
+		},
+		{
+			"name" : "todaysDate",
+			"type" : "date",
+			"allowBypass": "false",
+			"format" : [
+				{
+					"value" : "yyyy-MM-dd HH:mm:ss"					
+				}
+			]
+		},
+		{
+			"name" : "GUID",
+			"type" : "guid",
+			"allowBypass": "false"			
+		},
+		{
+			"name" : "sessionId",
+			"type" : "aplhanumeric",
+			"allowBypass": "true",
+			"format" : [{
+					"length" : 24,
+					"case": "upper"
+				}]
+		}
+	]
+}
