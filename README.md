@@ -44,7 +44,8 @@ The following json files are required.
 
 Core properties include the following attributes to describe the content of the configuration file:
 
-### MQ Sample
+There can be only one interface type per config. Following example list details for all interface types.
+
 ```
 {
 	"config": [
@@ -64,6 +65,15 @@ Core properties include the following attributes to describe the content of the 
                 "mqOutQueue" : "outQueue"    		
         }]
 		},
+        {
+			"name" : "http",
+			"details" : [{
+                "mqHostName" : "localhost",
+                "mqHostPort" : "5672",
+                "mqInQueue" : "testQueue",
+                "mqOutQueue" : "outQueue"    		
+        }]
+		}
     {
 			"name" : "redis",
 			"details" : [{
@@ -75,28 +85,169 @@ Core properties include the following attributes to describe the content of the 
 } 
 ```
 
-| Attribute | Attribute | Required | Valid Values | Description |
-| :---: | :---: | :---: | :---: | :---: |
+| Attribute | Attribute | Required | type | Description |
+| :---: | :---: | :---: | :---: | --- |
 | config|  | Yes | string | controlling json element |
-|       | name  | Yes | string | name of the current config element |
-|       | details  | Yes | string | details of the current config element |
-| :---: | :---: | :---: | :---: | :---: |
-|       | mqHostName  | Yes | string | The hostname of the mq server |
+||
+| name  | |Yes | string | name of the current config element, either core, rabbitmq, http, redis  | 
+| details  || Yes | string | details of the current config element |
+|**name**|**details**
+|core       | stubName  | Yes | string | The name of the virtual service |
+|       | threadPool  | Yes | string | The number of threads for the virtual service |
+|**name**|**details**
+|       | mqHostName  | Yes | string | The hostname or IP of the mq server |
 |       | mqHostPort  | Yes | string | The hostport of the mq server |
 |       | mqInQueue  | Yes | string | The name of the INBOUND (request) MQ queue |
 |       | mqOutQueue  | Yes | string | The name of the OUTBOUND (response) MQ queue |
-| :---: | :---: | :---: | :---: | :---: |
-|       | httpHostName  | Yes | string | The hostname of the http/s server |
+|**name**|**details**
+| http  | httpHostName  | Yes | string | The hostname of the http/s server |
 |       | httpHostPort  | Yes | string | The hostport of the http/s server |
-|       | sslKeyName  | Yes (for https) | string | The location of the secure key |
+|       | sslKeyName  | Yes (for https) | string | The location of the secure key. If this is set virtual service assumes **https** |
 |       | sslKeyPassword  | Yes (for https) | string | The password of the secure key |
-| :---: | :---: | :---: | :---: | :---: |
-|       | redisHostName  | No | string | The hostname of the redis server |
+|**name**|**details**
+| redis      | redisHostName  | No | string | The hostname of the redis server |
 |       | redisHostPort  | No | string | The hostport of the redis server |
 
+## Request/Response templates. requestresponse.json
+
+Request and response templates serve two purposes.
+
+1. Identifies, based on inbound message, which response template to use
+2. contains the response template with replaceable data variables (See data variables section) 
+
+**Note** Data variables are prefixed with a %, have a name identifier and suffixed with a %. e.g. %sessionId%
+Name identiofiers are generated based on data variables (See data variables section)  
+```
+{
+	"response": [
+	{
+        "name": "00-status",
+		"type": "body",
+		"lookupWith": "regex",
+		"lookupValue": "status",
+        "pause": "100",
+		"contents": "{\"response\": [{\"status\": \"OK\",\"message\": \"TNS Account Service/CAM Stub - status OK\",\"version\": \"%stubName%\",\"timestamp\": \"%todaysDate%\",\"GUID\": \"%GUID%\",\"Number\": \"%tokenNumber%\",\"AlphaNumer\": \"%sessionId%\"}]}"
+	},
+	{
+        "name": "01-create-session",
+		"type": "body",
+		"lookupWith": "regex",
+		"lookupValue": "merchant/TESTKENOCOM01/order/(.+?)/transaction",
+        "pause": "100",
+		"contents": "{\"result\": \"SUCCESS\",\"session\": {\"aes256Key\": \"PzUx0tR45OSdyQXzP4Y3es4lpp69KpsmLUYNC\/Qfk80=\",\"updateStatus\": \"NO_UPDATE\",\"authenticationLimit\": 5,\"id\": \"SESSION%sessionId%\",\"version\": \"872ec53701\"},\"merchant\": \"TESTKENOCOM01\"}"
+	}
+	]
+}
+```
+
+| Attribute | Attribute | Required | type | valid values |Description |
+| :---: | :---: | :---: | :---: | :---: | --- |
+| response |  | Yes | string |  | controlling json array
+||
+| type |  | Yes | string | path or body | the area in which to serach for a match
+| lookupWith |  | Yes | string | regex or string | the way to search for a match in the type area
+| lookupValue |  | Yes | string | regex format or search string | the value to search for a match in the type area
+| pause |  | Yes | string | number format in ms | the time to delay before sending a response
+| contents |  | Yes | string |  | the response message with data variables
 
 
 
-## Dependency Management
+## data variables. datavariables.json
 
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
+This file contains the replacebale data variables that are inserted into the response messsage
+
+```{
+	"__comment1__": "any variables (e.g. redis lookups) which reference other variables must be set at the BOTTOM of the file.",
+	"variable": [
+		{
+			"name" : "tokenNumber",
+			"type" : "number",
+			"allowBypass": "true",
+			"format" : [{
+					"length" : 16					
+				}]
+		},
+		{
+			"name" : "stubName",
+			"type" : "string",
+			"allowBypass": "true",
+			"format" : [{
+					"value" : "mqStub version 1.0"					
+				}]
+		},
+		{
+			"name" : "todaysDate",
+			"type" : "date",
+			"allowBypass": "false",
+			"format" : [
+				{
+					"value" : "yyyy-MM-dd HH:mm:ss"					
+				}
+			]
+		},
+		{
+			"name" : "GUID",
+			"type" : "guid",
+			"allowBypass": "false"			
+		},
+		{
+			"name" : "sessionId",
+			"type" : "aplhanumeric",
+			"allowBypass": "true",
+			"format" : [{
+					"length" : 24,
+					"case": "upper"
+				}]
+		}
+	]
+}
+```
+
+| Attribute | Attribute | Required | type | valid values |Description |
+| :---: | :---: | :---: | :---: | :---: | --- |
+| variable |  | Yes | string |  | controlling json array
+||
+| name |  | Yes | string | alphanumeric string | the name fo the data varible
+| type |  | Yes | string | string, number, date, guid, alphanumeric, substring, regex, redisRead, redisUpdate, concatenate | the type of the variable
+| allowBypass |  | Yes | string | true or fales | if true always geberates a variable even if not required for response
+| format |  | Yes | string |  | the format details of the data variable type
+||
+|**type**|**format**
+| string |value  | Yes | string |  | the string value
+|**type**|**format**
+| number |length  | Yes | int |  | the length of the number
+|**type**|**format**
+| date |value  | Yes | simple date format |  | the format of the date
+|**type**|**format**
+| guid |N/A  |  |  |  | 
+|**type**|**format**
+| aplhanumeric |length  | Yes | int |  | the length of the string
+|  |case  | Yes | the case of the string | upper, lower, mixed | teh case of the string
+|**type**|**format**
+| regex |value  | Yes | regex format |  | the reges format data is extracted from inbound message
+|**type**|**format**
+| substring |startPos  | Yes | the starting position | int | the starting position of data is extracted from inbound message
+|  |endPos  | Yes | String | end pistion as an int or EOL for end of line | the starting position of data is extracted from inbound message
+|**type**|**format**
+| concatenate |variableName  | Yes | string |  | two or more data variables (set previously) to join together.
+|**type**|**format**
+| redisRead |redisSetName  | Yes | string |  | the name of the redis set to read from
+|  |redisKeyName  | Yes | String |  | the name of the redis key to read from, this is a data variable set previously
+|**type**|**format** 
+| redisUpdate |redisSetName  | Yes | string |  | the name of the redis set to write to
+|  |redisKeyName  | Yes | String |  | the name of the redis key to write to, this is a data variable set previously
+|  |redisKeyValue  | Yes | String |  | the name of the redis data to write to, this is a data variable set previously
+
+
+
+
+
+
+
+
+
+
+
+
+
+
