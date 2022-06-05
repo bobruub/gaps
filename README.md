@@ -8,7 +8,7 @@ In performance testing the requirement for interfacing systems can sometimes cau
 
 The General All Purpose Stub (GAPS) is a generic stubbing platform used to emulate downstream systems for performance testing.
 
-Consider an environment that looks as follows…
+![GeneralAllPurposeStub.png](GeneralAllPurposeStub.png)
 
 
 ## Designing your test stub
@@ -119,7 +119,7 @@ Request and response templates serve two purposes.
 2. contains the response template with replaceable data variables (See data variables section) 
 
 **Note** Data variables are prefixed with a %, have a name identifier and suffixed with a %. e.g. %sessionId%
-Name identiofiers are generated based on data variables (See data variables section)  
+Name indentifiers are generated based on data variables (See data variables section)  
 ```
 {
 	"response": [
