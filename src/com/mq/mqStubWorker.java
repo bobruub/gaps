@@ -1,7 +1,7 @@
 package com.mq;
 
 import com.core.stubWorker;
-import com.core.utils;
+import com.core.logger;
 import com.core.config;
 
 import java.io.IOException;
@@ -33,6 +33,7 @@ public class mqStubWorker extends stubWorker implements Runnable {
     private String responseMsg;
     private Channel channel;
     private config config;
+    private logger logger;
 
     public mqStubWorker(config config,
             String inMessage) {
@@ -47,6 +48,7 @@ public class mqStubWorker extends stubWorker implements Runnable {
     @Override
     public void run() {
 
+        logger logger = new logger();
         //
         // setup redis pool
         //
@@ -56,7 +58,7 @@ public class mqStubWorker extends stubWorker implements Runnable {
             jedis = jedisPool.getResource();
         }        
         
-        utils.displayMsg("mqStubWorker: inbound message: " + inMessage);
+        logger.info("mqStubWorker: inbound message: " + inMessage);
         //
         // determine which request response template to use
         //
@@ -64,21 +66,21 @@ public class mqStubWorker extends stubWorker implements Runnable {
         if (responseTemplateMessage) {
             responseMsg = getTemplate("templateContents");
             defaultPause = Integer.parseInt(getTemplate("templatePause"));
-            utils.displayMsg("mqStubWorker: template match: " + getTemplate("templateName"));
+            logger.info("mqStubWorker: template match: " + getTemplate("templateName"),config.getLoglevel());
         }
         //
         // now we have identified the template to use process it replacing any varibales
         // %varname% it may contain
         //
         responseMsg = processVariables(inMessage, dataVariableArray, responseMsg,jedis);
-        utils.displayMsg("mqStubWorker: response message: " + responseMsg);
+        logger.info("mqStubWorker: response message: " + responseMsg,config.getLoglevel());
         //
         // now delay for the pause time
         //
         try {
             Thread.sleep(defaultPause);
         } catch (InterruptedException e) {
-            utils.displayError("mqStubWorker: Error in thread sleep : " + e);
+            logger.error("mqStubWorker: Error in thread sleep : " + e);
         }
         //
         // now write the response
@@ -87,7 +89,7 @@ public class mqStubWorker extends stubWorker implements Runnable {
             channel.queueDeclare(outQueueName, true, false, false, null);
             channel.basicPublish("", outQueueName, null, responseMsg.getBytes());
         } catch (IOException e) {
-            utils.displayError("mqStubWorker: error writing to : " + outQueueName + " : " + e);
+            logger.error("mqStubWorker: error writing to : " + outQueueName + " : " + e);
             e.printStackTrace();
         }
 

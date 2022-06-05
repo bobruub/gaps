@@ -5,7 +5,8 @@
 			"name" : "core",
 			"details" : [{
         "stubName": "MQ Stub",
-        "threadPool": "100"
+        "threadPool": "100",
+        "logLevel" : "INFO"
     		}]
 		},
     {
@@ -18,7 +19,26 @@
         }]
 		},
     {
-			"name" : "redisX",
+			"name" : "http",
+			"details" : [{
+        "httpHostName" : "localhost",
+        "httpHostPort" : "2525",
+        "clientTimeout" : "1000",
+        "socketTimeout" : "1000",
+        "sslKeyName": "./key/httpskey.jks",
+        "sslKeyPassword": "password"    		
+        }]
+		},
+    {
+			"name" : "tcp",
+			"details" : [{
+        "tcpHostName" : "localhost",
+        "tcpHostPort" : "2525"
+
+        }]
+		},
+    {
+			"name" : "redis",
 			"details" : [{
         "redisHostName" : "localhost",
         "redisHostPort" : "6379"

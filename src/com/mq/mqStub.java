@@ -13,7 +13,7 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 
-import com.core.utils;
+import com.core.logger;
 import com.core.config;
 
 import com.rabbitmq.client.ConnectionFactory;
@@ -31,25 +31,26 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
+
+
 public class mqStub {
 
-    // Create an HTTPStub for a particular TCP port
     public mqStub() {
 
     }
 
-    private static utils myUtils;
     private static config config;
+    public static logger logger;
     static JsonObject configObject = null;
 
     public static void main(String[] args) throws Exception {
-        myUtils = new utils();
+        logger logger = new logger();
         config = new config();
         //
         // load the configuration file
         //
         String fileName = "./config/config.json";
-        utils.displayMsg("mqStub: opening file: " + fileName);
+        logger.info("mqStub: opening file: " + fileName);
         String configString = null;
         try {
             // open the config.json file and load into an json object
@@ -63,15 +64,12 @@ public class mqStub {
             // fis.close();
 
         } catch (Exception e) {
-            System.out.println("httpStub: error processing file: " + fileName + "..." + e);
+            System.out.println("mqStub: error processing file: " + fileName + "..." + e);
             System.exit(1);
         }
         //
         // set the config elements
         //
-        // config.setName(configObject.getString("stubName"));
-        // config.setThreadPool(configObject.getInt("threadPool"));
-
         JSONParser parser = null;
         JSONObject configVariables = null;
         JSONArray configArray = null;
@@ -79,56 +77,67 @@ public class mqStub {
         configVariables = (JSONObject) parser.parse(configString);
         configArray = (JSONArray) configVariables.get("config");
         for (int x = 0; x < configArray.size(); x++) {
-            JSONObject configObject = (JSONObject) configArray.get(x);
-            String Name = (String) configObject.get("name");
-            utils.displayMsg("mqStub: setting config for: " + Name);
-            if (Name.equals("core")) {
-                JSONArray detailsArray = (JSONArray) configObject.get("details");
-                JSONObject details = (JSONObject) detailsArray.get(0);
-                String stubName = (String) details.get("stubName");
-                config.setName(stubName);
-                String threadPool = (String) details.get("threadPool");
-                config.setThreadPool(Integer.parseInt(threadPool));
-                utils.displayMsg("mqStub: \tMQ Stub Name: " + config.getName());
-                utils.displayMsg("mqStub: \tthread pool size: " + config.getThreadPool() + "");
-
-            } else if (Name.equals("rabbitmq")) {
-                JSONArray detailsArray = (JSONArray) configObject.get("details");
-                JSONObject details = (JSONObject) detailsArray.get(0);
-                String mqHostName = (String) details.get("mqHostName");
-                String mqHostPort = (String) details.get("mqHostPort");
-                String mqInQueue = (String) details.get("mqInQueue");
-                String mqOutQueue = (String) details.get("mqOutQueue");
-                config.setMQHostName(mqHostName);
-                config.setMQHostPort(Integer.parseInt(mqHostPort));
-                config.setMQInQueue(mqInQueue);
-                config.setMQOutQueue(mqOutQueue);
-                utils.displayMsg("mqStub: \tMQ Host: " + config.getMQHostName());
-                utilss.displayMsg("mqStub: \tMQ Port: " + config.getMQHostPort() + "");
-                utils.displayMsg("mqStub: \tMQ Request Queue: " + config.getMQInQueue());
-                utils.displayMsg("mqStub: \tMQ Response Queue: " + config.getMQOutQueue());
-
-            } else if (Name.equals("redis")) {
-                JSONArray detailsArray = (JSONArray) configObject.get("details");
-                JSONObject details = (JSONObject) detailsArray.get(0);
-                String redisHostName = (String) details.get("redisHostName");
-                String redisHostPort = (String) details.get("redisHostPort");
-                config.setRedisHostName(redisHostName);
-                config.setRedisHostPort(Integer.parseInt(redisHostPort));
-                utils.displayMsg("mqStub: \tRedis Host: " + config.getRedisHostName());
-                utils.displayMsg("mqStub: \tRedis Port: " + config.getRedisHostPort() + "");
-
+          JSONObject configObject = (JSONObject) configArray.get(x);
+          String Name = (String) configObject.get("name");
+          System.out.println("CONF: mqStub: setting config for: " + Name);
+          if (Name.equals("core")) {
+            JSONArray detailsArray = (JSONArray) configObject.get("details");
+            JSONObject details = (JSONObject) detailsArray.get(0);
+            String stubName = (String) details.get("stubName");
+            config.setName(stubName);
+            String threadPool = (String) details.get("threadPool");
+            config.setThreadPool(Integer.parseInt(threadPool));
+            config.setloglevel((String) details.get("logLevel"));
+            System.out.println("CONF: mqStub: \tLog level: " + config.getLoglevel() + "");
+            logger.info("mqStub: \tStub Name: " + config.getName(),config.getLoglevel());
+            logger.info("mqStub: \tthread pool size: " + config.getThreadPool() + "",config.getLoglevel());
+          } else if (Name.equals("rabbitmq")) {
+            JSONArray detailsArray = (JSONArray) configObject.get("details");
+            JSONObject details = (JSONObject) detailsArray.get(0);
+            String mqHostName = (String) details.get("mqHostName");
+            String mqHostPort = (String) details.get("mqHostPort");
+            String mqInQueue = (String) details.get("mqInQueue");
+            String mqOutQueue = (String) details.get("mqOutQueue");
+    
+            config.setMQHostName(mqHostName);
+            config.setMQHostPort(Integer.parseInt(mqHostPort));
+            config.setMQInQueue(mqInQueue);
+            config.setMQOutQueue(mqOutQueue);
+    
+            logger.info("mqStub: \tmqHostName: " + config.getMQHostName(),config.getLoglevel());
+            logger.info("mqStub: \tmqHostPort: " + config.getMQHostPort(),config.getLoglevel());
+            logger.info("mqStub: \tmq In Queue: " + config.getMQInQueue(),config.getLoglevel());
+            logger.info("mqStub: \tmq Out Queue: " + config.getMQOutQueue(),config.getLoglevel());
+    
+            // optional https requirements
+            if (details.containsKey("sslKeyName")) {
+              config.setSslKeyName((String) details.get("sslKeyName"));
+              config.setSslKeyPassword((String) details.get("sslKeyPassword"));
+              logger.info("mqStub: \tsslKeyName: " + config.getSslKeyName(),config.getLoglevel());
+              logger.info("mqStub: \tsslKeyPassword: " + config.getSslKeyPassword() + "",config.getLoglevel());
             }
+    
+          } else if (Name.equals("redis")) {
+            JSONArray detailsArray = (JSONArray) configObject.get("details");
+            JSONObject details = (JSONObject) detailsArray.get(0);
+            String redisHostName = (String) details.get("redisHostName");
+            String redisHostPort = (String) details.get("redisHostPort");
+            config.setRedisHostName(redisHostName);
+            config.setRedisHostPort(Integer.parseInt(redisHostPort));
+            logger.info("mqStub: \tRedis Host: " + config.getRedisHostName(),config.getLoglevel());
+            logger.info("mqStub: \tRedis Port: " + config.getRedisHostPort() + "",config.getLoglevel());
+    
+          }
         }
-        //
+            //
         // display the config name
         //
-        utils.displayMsg("mqStub: starting: " + config.getName());
+        logger.info("mqStub: starting: " + config.getName());
         //
         // get the requestresponse pairs
         //
         fileName = "./config/requestresponse.json";
-        utils.displayMsg("mqStub: opening file: " + fileName);
+        System.out.println("CONF: mqStub: opening file: " + fileName);
         String requestResponseString = null;
         parser = null;
         JSONObject dataRequestResponse = null;
@@ -141,14 +150,14 @@ public class mqStub {
             requestResponseArray = (JSONArray) dataRequestResponse.get("response");
             config.setRequestResponseArray(requestResponseArray);
         } catch (Exception e) {
-            utils.displayError("mqStub: error processing file: " + fileName + "..." + e);
+            logger.info("mqStub: error processing file: " + fileName + "..." + e);
             System.exit(1);
         }
         //
         // get the data variables
         //
         fileName = "./config/datavariables.json";
-        utils.displayMsg("mqStub: opening file: " + fileName);
+        System.out.println("CONF: mqStub: opening file: " + fileName);
         String dataVariablesString = null;
         JSONObject dataVariables = null;
         JSONArray variableArray = null;
@@ -160,7 +169,7 @@ public class mqStub {
             variableArray = (JSONArray) dataVariables.get("variable");
             config.setDataVariableArray(variableArray);
         } catch (Exception e) {
-            utils.displayError("mqStub: error processing file: " + fileName + "..." + e);
+            logger.error("mqStub: error processing file: " + fileName + "..." + e);
             System.exit(1);
         }
         //
@@ -172,6 +181,8 @@ public class mqStub {
 
     public void RunIsolator() throws IOException {
 
+        logger logger = new logger();
+        
         ExecutorService executor = Executors.newFixedThreadPool(config.getThreadPool());
 
         // open redis
@@ -182,12 +193,12 @@ public class mqStub {
                 JedisPoolConfig poolConfig = new JedisPoolConfig();
                 JedisPool jedisPool = new JedisPool(poolConfig,redisServer,redisPort);
                 Jedis jedis = jedisPool.getResource();
-                System.out.println("httpStub: redis: " + redisServer + ":" + redisPort);
-                System.out.println("httpStub: Redis running. PING - " + jedis.ping());
+                logger.info("mqStub: Redis: " + redisServer + ":" + redisPort,config.getLoglevel());
+                logger.info("mqStub: Redis running. PING - " + jedis.ping(),config.getLoglevel());
                 config.setJedisPool(jedisPool);
                 jedis.close();
             } catch (Exception e) {
-                System.out.println("httpStub: error opening redis: " + e);
+                logger.error("mqStub: error opening redis: " + e);
                 return;
             }
         }
@@ -199,7 +210,7 @@ public class mqStub {
         // connect to the mq server
         //
         try {
-            utils.displayMsg("connecting to mq server : " + config.getMQHostName() + ":" + config.getMQHostPort());
+            logger.info("mqStub: connecting to mq server : " + config.getMQHostName() + ":" + config.getMQHostPort(),config.getLoglevel());
             factory = new ConnectionFactory();
             factory.setHost(config.getMQHostName());
             factory.setPort(config.getMQHostPort());
@@ -207,7 +218,7 @@ public class mqStub {
             channel = connection.createChannel();
             config.setMQChannel(channel);
         } catch (Exception e) {
-            utils.displayError("mqStub: error connecting mq server : " + config.getMQHostName() + "..." + e);
+            logger.info("mqStub: error connecting mq server : " + config.getMQHostName() + "..." + e);
             System.exit(1);
         }
         //

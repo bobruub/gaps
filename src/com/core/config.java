@@ -20,6 +20,15 @@ public class config {
     private JedisPool jedisPool;
     private String redisHostName;
     private int redisHostPort;
+    private String httpHostName;
+    private int httpHostPort;
+    private int httpSocketTimeout;
+    private int httpClientTimeout;
+    private String httpSslKeyName;
+    private String httpSslKeyPassword;
+    private String loglevel;
+    private int tcpHostPort;
+    private String tcpHostName;
 
 //    
 // setter and getter for name of the stub
@@ -120,6 +129,82 @@ public int getRedisHostPort() {
 
 public void setRedisHostPort(int redisHostPort) {
     this.redisHostPort = redisHostPort;
+}
+
+//
+
+public String getHttpHostName() {
+    return this.httpHostName;
+}
+
+public void setHttpHostName(String httpHostName) {
+    this.httpHostName = httpHostName;
+}
+
+public int getHttpHostPort() {
+    return this.httpHostPort;
+}
+
+public void setHttpHostPort(int httpHostPort) {
+    this.httpHostPort = httpHostPort;
+}
+
+
+public int getHttpSocketTimeout() {
+    return this.httpSocketTimeout;
+}
+
+public void setHttpSocketTimeout(int httpSocketTimeout) {
+    this.httpSocketTimeout = httpSocketTimeout;
+}
+
+public int getHttpClientTimeout() {
+    return this.httpClientTimeout;
+}
+
+public void setHttpClientTimeout(int httpClientTimeout) {
+    this.httpClientTimeout = httpClientTimeout;
+}
+
+public String getSslKeyName() {
+    return this.httpSslKeyName;
+}
+
+public void setSslKeyName(String httpSslKeyName) {
+    this.httpSslKeyName = httpSslKeyName;
+}
+
+public String getSslKeyPassword() {
+    return this.httpSslKeyPassword;
+}
+
+public void setSslKeyPassword(String httpSslKeyPassword) {
+    this.httpSslKeyPassword = httpSslKeyPassword;
+}
+
+public String getLoglevel() {
+    return this.loglevel;
+}
+
+public void setloglevel(String loglevel) {
+    this.loglevel = loglevel;
+}
+//
+
+public String getTcpHostName() {
+    return this.tcpHostName;
+}
+
+public void setTcpHostName(String tcpHostName) {
+    this.tcpHostName = tcpHostName;
+}
+
+public int getTcpHostPort() {
+    return this.tcpHostPort;
+}
+
+public void setTcpHostPort(int tcpHostPort) {
+    this.tcpHostPort = tcpHostPort;
 }
 
 

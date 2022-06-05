@@ -1,6 +1,6 @@
 package com.core;
 
-import com.core.utils;
+import com.core.logger;
 import com.core.config;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
@@ -8,7 +8,7 @@ import java.util.HashMap;
 /**
 class: stubWorker
 Purpose: processes for inbound messages
-Notes:
+Notesƒ
 Author: Tim Lane
 Date: 07/05/2022
 **/
@@ -30,6 +30,7 @@ public class stubWorker {
     HashMap<String, String> variableContent = new HashMap<String, String>();
     HashMap<String, String> templateContent = new HashMap<String, String>();
     String currLine = null;
+    logger logger = new logger();
     //
     // set and get array for the template message, this is used in other processes
     // for extracting details about the template.
@@ -128,13 +129,13 @@ public class stubWorker {
                 String responseLookupValue = (String) variable.get("lookupValue");
                 // extract the first line from the input message to see if it matches
                 // GET 'http://192.168.0.81:8090/v1/account-service/tab/accounts/99999936/
-                currentLookupLine = inMessage;
+                int pathPos = inMessage.indexOf(",");
+                currentLookupLine = inMessage.substring(0,pathPos);
                 // if the current response message array is of lookup type string
                 if (responseLookupWith.equals("string")) {
                     // if the string exists then this is the correct message
                     if (currentLookupLine.contains(responseLookupValue)) {
-                        long templatePauseLong = (long) variable.get("pause");
-                        templatePause = Long.toString(templatePauseLong);
+                        templatePause = (String) variable.get("pause");
                         responseTemplate = (String) variable.get("contents");
                         responseTemplateMessage = true;
                         break; // found a match so break
@@ -147,8 +148,7 @@ public class stubWorker {
                     // if the regex matches then this is the correct message
                     if (matcher.find()) {
                         responseTemplate = (String) variable.get("contents");
-                        long templatePauseLong = (long) variable.get("pause");
-                        templatePause = Long.toString(templatePauseLong);
+                        templatePause = (String) variable.get("pause");
                         responseTemplateMessage = true;
                         break; // found a match so break
                     }
@@ -388,6 +388,7 @@ public class stubWorker {
     }
 
     public String processContentLengthType(String responseMsg) {
+        logger.debug("stubWorker: processing content length: " + responseMsg);
         String variableValue = null;
         // splitting on empty line, header in part 0, body is remainder
         String[] parts = responseMsg.split("(?:\r\n|[\r\n])[ \t]*(?:\r\n|[\r\n])");

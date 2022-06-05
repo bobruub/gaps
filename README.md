@@ -89,7 +89,7 @@ There can be only one interface type per config. Following example list details 
 | :---: | :---: | :---: | :---: | --- |
 | config|  | Yes | string | controlling json element |
 ||
-| name  | |Yes | string | name of the current config element, either core, rabbitmq, http, redis  | 
+| name  | |Yes | string | name of the current config element, either core, rabbitmq, http, tcp, redis  | 
 | details  || Yes | string | details of the current config element |
 |**name**|**details**
 |core       | stubName  | Yes | string | The name of the virtual service |
@@ -104,6 +104,9 @@ There can be only one interface type per config. Following example list details 
 |       | httpHostPort  | Yes | string | The hostport of the http/s server |
 |       | sslKeyName  | Yes (for https) | string | The location of the secure key. If this is set virtual service assumes **https** |
 |       | sslKeyPassword  | Yes (for https) | string | The password of the secure key |
+|**name**|**details**
+| tcp  | tcpHostName  | Yes | string | The hostname of the tcp server |
+|       | tcpHostPort  | Yes | string | The hostport of the tcp server |
 |**name**|**details**
 | redis      | redisHostName  | No | string | The hostname of the redis server |
 |       | redisHostPort  | No | string | The hostport of the redis server |
@@ -144,7 +147,7 @@ Name identiofiers are generated based on data variables (See data variables sect
 | :---: | :---: | :---: | :---: | :---: | --- |
 | response |  | Yes | string |  | controlling json array
 ||
-| type |  | Yes | string | path or body | the area in which to serach for a match
+| type |  | Yes | string | path or body | the area in which to serach for a match, MQ and TCP can only match body
 | lookupWith |  | Yes | string | regex or string | the way to search for a match in the type area
 | lookupValue |  | Yes | string | regex format or search string | the value to search for a match in the type area
 | pause |  | Yes | string | number format in ms | the time to delay before sending a response
