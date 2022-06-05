@@ -2,9 +2,12 @@ package com.tcp;
 
 import java.io.FilterInputStream;
 import java.io.InputStream;
+import com.core.logger;
 
 public class tcpInputStream extends FilterInputStream
 {
+    logger logger = new logger();
+
 	 public tcpInputStream(InputStream in)
 	    {
 	        super(in);
@@ -30,13 +33,14 @@ public class tcpInputStream extends FilterInputStream
 	        {
 	            int ch = -1;
 	            ch = read();
-	            if(ch==-1)
+                if(ch==-1)
 	                return result.toString();
 	            
 	            if(ch==13)
 	                return result.toString();
 	            
 	            result.append((char) ch);
+                 //logger.info("httpInputStream: \tchar: " + result.toString());
 	 
 	        } while (!finished);
 	        return result.toString();

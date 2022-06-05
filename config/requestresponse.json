@@ -6,7 +6,7 @@
 			"lookupWith": "regex",
 			"lookupValue": "tcpstatus",
 			"pause": "100",
-			"contents": "{\"response\": [{\"status\": \"OK\",\"message\": \"MQ STUB - status OK\",\"version\": \"%stubName%\",\"timestamp\": \"%todaysDate%\",\"GUID\": \"%GUID%\",\"Number\": \"%tokenNumber%\",\"AlphaNumer\": \"%sessionId%\"}]}"
+			"contents": "{\"response\": [{\"status\": \"OK\",\"message\": \"TCP STUB - status OK\",\"version\": \"%stubName%\",\"timestamp\": \"%todaysDate%\",\"GUID\": \"%GUID%\",\"Number\": \"%tokenNumber%\",\"AlphaNumer\": \"%sessionId%\"}]}"
 		},
 	{
         "name": "00-MQ-status",

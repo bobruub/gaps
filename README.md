@@ -242,6 +242,18 @@ This file contains the replacebale data variables that are inserted into the res
 |  |redisKeyValue  | Yes | String |  | the name of the redis data to write to, this is a data variable set previously
 
 
+## Runtime.
+
+### Linux (adjust as you will for windows)
+
+HOMELOC=/\Users/\tim/\Documents/\gaps
+
+CLASSPATH=.:$HOMELOC/\gaps.jar:$HOMELOC/\lib/\slf4j.api-1.6.1.jar:$HOMELOC/\lib/\slf4j-simple-1.6.1.jar:$HOMELOC/\lib/\json-smart-2.4.8.jar$:$HOMELOC/\lib/\jedis-2.8.1.jar$:$HOMELOC/\lib/\javax.json-1.0.jar$:$HOMELOC/\lib/\commons-pool2-2.6.2.jar$:$HOMELOC/\lib/\commons-lang3-3.12.0.jar$:$HOMELOC/\lib/\asm-1.0.2.jar$:$HOMELOC/\lib/\amqp-client-5.14.2.jar
+
+java -cp $CLASSPATH -Xmx512m com.mq.mqStub
+java -cp $CLASSPATH -Xmx512m com.http.httpStub
+java -cp $CLASSPATH -Xmx512m com.tcp.tcpStub
+
 
 
 

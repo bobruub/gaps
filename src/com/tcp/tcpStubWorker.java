@@ -3,6 +3,7 @@ package com.tcp;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -64,17 +65,23 @@ public class tcpStubWorker extends stubWorker implements Runnable {
       }
 
     // get the input message
-    tcpInputStream inStream;
+    //tcpInputStream inStream;
+    InputStream inStream = null;
     String inputMsgLines = null;
     try{
-        inStream = new tcpInputStream(clientSocket.getInputStream());  
+        // inStream = new tcpInputStream(clientSocket.getInputStream());  
+        inStream = clientSocket.getInputStream();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(inStream));
+        inputMsgLines = reader.readLine();    // reads a line of text
+        
+        //logger.info("tcpStubWorker: inputMsgLines: " + inputMsgLines, config.getLoglevel());
         // assume tcp is a single line
-        inputMsgLines = inStream.readLine();
+        
     } catch (Exception e) {
-        logger.error("httpStubWorker: error reading socket: input " + e);
+        logger.error("tcpStubWorker: error reading socket: input " + e);
         return;
     }
-    logger.info("httpStubWorker: socket input " + inputMsgLines.toString(), config.getLoglevel());
+    logger.info("tcpStubWorker: socket input: " + inputMsgLines.toString(), config.getLoglevel());
 
     //
     // got the message, lets determine with template to use
@@ -85,7 +92,7 @@ public class tcpStubWorker extends stubWorker implements Runnable {
     if (responseTemplateMessage) {
       responseMsg = getTemplate("templateContents");
       defaultPause = Integer.parseInt(getTemplate("templatePause"));
-      logger.info("tcpStubWorker: Processing: " + getTemplate("templateName"));
+      logger.info("tcpStubWorker: Template: " + getTemplate("templateName"),config.getLoglevel());
     }
     //
     // got the template, lets process the variables
@@ -103,15 +110,24 @@ public class tcpStubWorker extends stubWorker implements Runnable {
         logger.error("tcpStubWorker: Error in thread sleep : " + e);
         e.printStackTrace();
     }
-
+    BufferedOutputStream outStream = null;
     try{
         logger.info("tcpStubWorker: Writing: " + responseMsg,config.getLoglevel());
-        BufferedOutputStream outStream = new BufferedOutputStream(clientSocket.getOutputStream());
-        outStream.write(responseMsg.getBytes());
-
+        outStream = new BufferedOutputStream(clientSocket.getOutputStream());
+        outStream.write(responseMsg.getBytes());        
     } catch (IOException e) {
         logger.error("tcpStubWorker: Error in writing : " + e);
         e.printStackTrace();
+    } finally {
+        try {
+            //inStream.close();
+            outStream.close();
+        } catch (IOException e) {
+            logger.error("tcpStubWorker: Error in closing stream : " + e);
+            e.printStackTrace();
+        }
+        
+
     }
 
 
