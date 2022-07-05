@@ -303,7 +303,6 @@ public class httpStub {
         } finally {
 
         }
-
       }
       /*
        * shutdown threads
