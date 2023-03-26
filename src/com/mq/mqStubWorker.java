@@ -18,10 +18,10 @@ import com.rabbitmq.client.Channel;
 import org.apache.commons.lang3.StringUtils;
 
 import net.minidev.json.JSONArray;
-import redis.clients.jedis.Jedis;
+//import redis.clients.jedis.Jedis;
 // import net.minidev.json.JSONObject;
 // import net.minidev.json.parser.JSONParser;
-import redis.clients.jedis.JedisPool;
+//import redis.clients.jedis.JedisPool;
 
 public class mqStubWorker extends stubWorker implements Runnable {
 
@@ -52,17 +52,17 @@ public class mqStubWorker extends stubWorker implements Runnable {
         //
         // setup redis pool
         //
-        Jedis jedis = null;
-        if (!StringUtils.isEmpty(config.getRedisHostName())) {
-            JedisPool jedisPool = config.getJedisPool() ;
-            jedis = jedisPool.getResource();
-        }        
+//        Jedis jedis = null;
+//        if (!StringUtils.isEmpty(config.getRedisHostName())) {
+//            JedisPool jedisPool = config.getJedisPool() ;
+//            jedis = jedisPool.getResource();
+//        }        
         
         logger.info("mqStubWorker: inbound message: " + inMessage);
         //
         // determine which request response template to use
         //
-        boolean responseTemplateMessage = setResponseTemplate(inMessage, requestResponseArray);
+        boolean responseTemplateMessage = setResponseTemplate(inMessage, requestResponseArray,config);
         if (responseTemplateMessage) {
             responseMsg = getTemplate("templateContents");
             defaultPause = Integer.parseInt(getTemplate("templatePause"));
@@ -72,8 +72,9 @@ public class mqStubWorker extends stubWorker implements Runnable {
         // now we have identified the template to use process it replacing any varibales
         // %varname% it may contain
         //
-        responseMsg = processVariables(inMessage, dataVariableArray, responseMsg,jedis);
-        logger.info("mqStubWorker: response message: " + responseMsg,config.getLoglevel());
+        //responseMsg = processVariables(inputMsgLines.toString(), dataVariableArray, responseMsg, config);
+        responseMsg = processVariables(inMessage.toString(), dataVariableArray, responseMsg,config);
+        logger.debug("mqStubWorker: response message: " + responseMsg,config.getLoglevel());
         //
         // now delay for the pause time
         //

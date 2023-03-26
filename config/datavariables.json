@@ -2,6 +2,32 @@
 	"__comment1__": "any variables (e.g. redis lookups) which reference other variables must be set at the BOTTOM of the file.",
 	"variable": [
 		{
+			"name" : "status",
+			"type" : "regex",
+			"allowBypass": "true",
+			"format" : [{
+					"regex" : "status\": \"(.+?)\""					
+				}]
+		},
+		{
+			"name" : "AlphaNumer",
+			"type" : "regex",
+			"allowBypass": "true",
+			"format" : [{
+					"regex" : "AlphaNumer\": \"(.+?)\""					
+				}]
+		},
+		{
+			"name" : "Content-Type",
+			"type" : "string",
+			"allowBypass": "false",
+			"format" : [
+				{
+					"value" : "application/json"					
+				}
+			]
+		},
+		{
 			"name" : "tokenNumber",
 			"type" : "number",
 			"allowBypass": "true",
@@ -40,6 +66,18 @@
 					"length" : 24,
 					"case": "upper"
 				}]
+		},{
+			    "name" : "sessionIdNumber",
+			    "type" : "redisUpdate",
+			    "action": "variable",
+			    "allowBypass": "false",
+			    "format" : [
+			        {
+			            "redisSetName" : "id_session_details",
+			            "redisKeyName" : "AlphaNumer",
+			            "redisKeyValue": "sessionId"
+			        }
+			    ]
 		}
 	]
 }

@@ -48,17 +48,20 @@ public class httpStubWorker extends stubWorker implements Runnable {
 
   public void run() {
     logger logger = new logger();
-    logger.info("httpStubWorker: processing connection....");
+    logger.debug("httpStubWorker: processing connection....",config.getLoglevel());
     PrintWriter out = null;
     BufferedReader in = null;
     httpInputStream inStream = null;
     int postLength = 0;
-    
-    Jedis jedis = null;
-    if (!StringUtils.isEmpty(config.getRedisHostName())) {
-        JedisPool jedisPool = config.getJedisPool() ;
-        jedis = jedisPool.getResource();
-    }    
+    //
+    // if you've configured a jedis server get a resource from the pool
+    //
+    //Jedis jedis = null;
+    //if (!StringUtils.isEmpty(config.getRedisHostName())) {
+    //    logger.info("httpStubWorker: opening redis connection....",config.getLoglevel()); 
+    //    JedisPool jedisPool = config.getJedisPool() ;
+    //    jedis = jedisPool.getResource();
+    //}    
     //
     // create an input and output socket
     //
@@ -82,7 +85,7 @@ public class httpStubWorker extends stubWorker implements Runnable {
       while ((searchLine = inStream.readLine()).length() > 0) {
         if (lineCntr == 0) {
           firstLine = searchLine;
-          logger.info("httpStubWorker: Processing: firstLine: " + firstLine,config.getLoglevel());
+          logger.debug("httpStubWorker: Processing: firstLine: " + firstLine,config.getLoglevel());
           lineCntr++;
         }
         inputMsgLines.addElement(searchLine);
@@ -115,22 +118,31 @@ public class httpStubWorker extends stubWorker implements Runnable {
     //
     // now we have the message need to determine what response template to use and how long to pause
     //
-    logger.info("httpStubWorker: inputMsgLines.toString(): " + inputMsgLines.toString(),config.getLoglevel());
-    boolean responseTemplateMessage = setResponseTemplate(inputMsgLines.toString(),requestResponseArray);
+    logger.debug("httpStubWorker: inputMsgLines.toString(): " + inputMsgLines.toString(),config.getLoglevel());
+    boolean responseTemplateMessage = setResponseTemplate(inputMsgLines.toString(),requestResponseArray,config);
     if (responseTemplateMessage) {
       responseMsg = getTemplate("templateContents");
       defaultPause = Integer.parseInt(getTemplate("templatePause"));
-      logger.info("httpStubWorker: Processing: " + getTemplate("templateName"));
+      logger.debug("httpStubWorker: Processing: " + getTemplate("templateName"),config.getLoglevel());
+      //
+      // if it's a call back response, replace the inputMessage with the call back response
+      //
+      String callBackResponse = (String) getTemplate("templateCallBackResponse");
+      if (callBackResponse != null && !callBackResponse.isEmpty()){
+        logger.debug("httpStubWorker: callBackResponse: " + callBackResponse,config.getLoglevel());
+        inputMsgLines.clear();
+        inputMsgLines.addElement(callBackResponse);
+      }
+
     } else {
       errorMessage = "no matching response template found";
       httpRespCode = "400 Bad Request";
     }        
-    
     //
     // loop through input message for variable extraction
     //
-    logger.info("httpStubWorker: responseMsg: " + responseMsg,config.getLoglevel());
-    responseMsg = processVariables(inputMsgLines.toString(), dataVariableArray, responseMsg, jedis);
+    logger.debug("httpStubWorker: responseMsg: " + responseMsg,config.getLoglevel());
+    responseMsg = processVariables(inputMsgLines.toString(), dataVariableArray, responseMsg, config);
 
     // if theres a http response code other than 200 then replace it here
     if (!httpRespCode.contains("200")) {
@@ -139,7 +151,7 @@ public class httpStubWorker extends stubWorker implements Runnable {
     }
 
     // need to process the content length AFTER all other replacements are done
-    String contentLength = processContentLengthType(responseMsg);
+    String contentLength = processContentLengthType(responseMsg, config);
     responseMsg = responseMsg.replace("%Content-Length%", contentLength);
 
     //
@@ -174,6 +186,12 @@ public class httpStubWorker extends stubWorker implements Runnable {
       in.close();
       out.close();
       clientSocket.close();
+      inStream.close();
+//      if (!StringUtils.isEmpty(config.getRedisHostName())) {
+//        logger.info("httpStubWorker: closing redis connection....",config.getLoglevel()); 
+//        jedis.close();
+//    }    
+
     } catch (Exception e) {
       logger.error("httpStubWorker: error closing resources: " + e);
     }

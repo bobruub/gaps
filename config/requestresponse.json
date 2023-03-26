@@ -31,6 +31,17 @@
 		"lookupValue": "merchant/TESTKENOCOM01/order/(.+?)/transaction",
         "pause": "100",
 		"contents": "{\"result\": \"SUCCESS\",\"session\": {\"aes256Key\": \"PzUx0tR45OSdyQXzP4Y3es4lpp69KpsmLUYNC\/Qfk80=\",\"updateStatus\": \"NO_UPDATE\",\"authenticationLimit\": 5,\"id\": \"SESSION%sessionId%\",\"version\": \"872ec53701\"},\"merchant\": \"TESTKENOCOM01\"}"
+	},
+	{
+        "name": "01-create-session",
+		"type": "path",
+		"lookupWith": "regex",
+		"lookupValue": "callforward",
+        "pause": "100",
+		"callForwardUrl": "http://192.168.1.211:2992/status",
+		"callForwardType": "GET",
+		"callForwardBody": "test message",
+		"contents": "HTTP/1.1 200 OK\nContent-Length: %Content-Length%\nConnection: close\nContent-Type: %Content-Type%\n\n{\"result\": \"%status%\",\"session\": {\"aes256Key\": \"%AlphaNumer%\",\"updateStatus\": \"NO_UPDATE\",\"authenticationLimit\": 5,\"id\": \"%sessionId%\",\"version\": \"872ec53701\"},\"merchant\": \"TESTKENOCOM01\"}"
 	}
 	]
 }

@@ -83,7 +83,8 @@ public class httpStub {
     // load the configuration file
     //
     String fileName = "./config/config.json";
-    System.out.println("CONFIG: httpStub: opening file: " + fileName);
+
+    System.out.println("CONF: httpStub: opening file: " + fileName);
     String configString = null;
     try {
       // open the config.json file and load into an json object
@@ -91,7 +92,7 @@ public class httpStub {
       configString = new String(bytes);
 
     } catch (Exception e) {
-      System.out.println("httpStub: error processing file: " + fileName + "..." + e);
+      System.out.println("ERRR: httpStub: error processing file: " + fileName + "..." + e);
       System.exit(1);
     }
     JSONParser parser = null;
@@ -113,8 +114,8 @@ public class httpStub {
         config.setThreadPool(Integer.parseInt(threadPool));
         config.setloglevel((String) details.get("logLevel"));
         System.out.println("CONF: httpStub: \tLog level: " + config.getLoglevel() + "");
-        logger.info("httpStub: \tStub Name: " + config.getName(),config.getLoglevel());
-        logger.info("httpStub: \tthread pool size: " + config.getThreadPool() + "",config.getLoglevel());
+        logger.conf("httpStub: \tStub Name: " + config.getName());
+        logger.conf("httpStub: \tthread pool size: " + config.getThreadPool() + "");
       } else if (Name.equals("http")) {
         JSONArray detailsArray = (JSONArray) configObject.get("details");
         JSONObject details = (JSONObject) detailsArray.get(0);
@@ -128,29 +129,29 @@ public class httpStub {
         config.setHttpSocketTimeout(Integer.parseInt(socketTimeout));
         config.setHttpClientTimeout(Integer.parseInt(clientTimeout));
 
-        logger.info("httpStub: \thttpHostName: " + config.getHttpHostName(),config.getLoglevel());
-        logger.info("httpStub: \thttpHostPort: " + config.getHttpHostPort(),config.getLoglevel());
-        logger.info("httpStub: \thttpSocketTimeOut: " + config.getHttpSocketTimeout(),config.getLoglevel());
-        logger.info("httpStub: \thttpClientTimeout: " + config.getHttpClientTimeout(),config.getLoglevel());
+        logger.conf("httpStub: \thttpHostName: " + config.getHttpHostName());
+        logger.conf("httpStub: \thttpHostPort: " + config.getHttpHostPort());
+        logger.conf("httpStub: \thttpSocketTimeOut: " + config.getHttpSocketTimeout());
+        logger.conf("httpStub: \thttpClientTimeout: " + config.getHttpClientTimeout());
 
         // optional https requirements
         if (details.containsKey("sslKeyName")) {
           config.setSslKeyName((String) details.get("sslKeyName"));
           config.setSslKeyPassword((String) details.get("sslKeyPassword"));
-          logger.info("httpStub: \tsslKeyName: " + config.getSslKeyName(),config.getLoglevel());
-          logger.info("httpStub: \tsslKeyPassword: " + config.getSslKeyPassword() + "",config.getLoglevel());
+          logger.conf("httpStub: \tsslKeyName: " + config.getSslKeyName());
+          logger.conf("httpStub: \tsslKeyPassword: " + config.getSslKeyPassword() + "");
         }
 
       } else if (Name.equals("redis")) {
+
         JSONArray detailsArray = (JSONArray) configObject.get("details");
         JSONObject details = (JSONObject) detailsArray.get(0);
         String redisHostName = (String) details.get("redisHostName");
         String redisHostPort = (String) details.get("redisHostPort");
         config.setRedisHostName(redisHostName);
         config.setRedisHostPort(Integer.parseInt(redisHostPort));
-        logger.info("httpStub: \tRedis Host: " + config.getRedisHostName(),config.getLoglevel());
-        logger.info("httpStub: \tRedis Port: " + config.getRedisHostPort() + "",config.getLoglevel());
-
+        logger.conf("httpStub: \tRedis Host: " + config.getRedisHostName());
+        logger.conf("httpStub: \tRedis Port: " + config.getRedisHostPort() + "");
       }
     }
 
@@ -158,7 +159,7 @@ public class httpStub {
     // get the requestresponse pairs
     //
     fileName = "./config/requestresponse.json";
-    System.out.println("CONF: httpStub: opening file: " + fileName);
+    logger.conf("httpStub: opening file: " + fileName);
     String requestResponseString = null;
     parser = null;
     JSONObject dataRequestResponse = null;
@@ -178,7 +179,7 @@ public class httpStub {
     // get the data variables
     //
     fileName = "./config/datavariables.json";
-    System.out.println("CONF: httpStub: opening file: " + fileName);
+    logger.conf("httpStub: opening file: " + fileName);
     String dataVariablesString = null;
     JSONObject dataVariables = null;
     JSONArray variableArray = null;
@@ -199,14 +200,14 @@ public class httpStub {
 
   }
 
-  ServerSocket getServerSocket() throws Exception {
-    System.out.println("CONFIG: httpStub: Preparing a regular HTTP Server Socket on server:port " + config.getHttpHostPort());
+  ServerSocket getServerSocket(logger logger) throws Exception {
+    logger.conf("httpStub: Preparing a regular HTTP Server Socket on server:port " + config.getHttpHostPort());
     return new ServerSocket(config.getHttpHostPort());
 
   }
 
-  ServerSocket getSslServerSocket() throws Exception {
-    System.out.println("CONFIG: httpStub: Preparing a Secure HTTPS Server Socket on server:port " + config.getHttpHostPort());
+  ServerSocket getSslServerSocket(logger logger) throws Exception {
+    logger.conf("httpStub: Preparing a Secure HTTPS Server Socket on server:port " + config.getHttpHostPort());
     // A keystore is where keys and certificates are kept
     // Both the keystore and individual private keys should be password protected
     KeyStore keystore = KeyStore.getInstance("JKS");
@@ -242,12 +243,12 @@ public class httpStub {
         JedisPoolConfig poolConfig = new JedisPoolConfig();
         JedisPool jedisPool = new JedisPool(poolConfig, redisServer, redisPort);
         Jedis jedis = jedisPool.getResource();
-        logger.info("httpStub: redis: " + redisServer + ":" + redisPort,config.getLoglevel());
-        logger.info("httpStub: Redis running. PING - " + jedis.ping(),config.getLoglevel());
+        logger.conf("httpStub: redis: " + redisServer + ":" + redisPort + " - PING - " + jedis.ping());
+        logger.conf("httpStub: redis: creating redis pool...");
         config.setJedisPool(jedisPool);
         jedis.close();
       } catch (Exception e) {
-        logger.error("httpStub: error opening redis: " + e);
+        logger.error("httpStub: error opening redis: " + redisServer + ":" + redisPort + " - " + e);
         return;
       }
     }
@@ -267,13 +268,13 @@ public class httpStub {
       try {
         // open a socket
         if (securePort) {
-          serverSocket = getSslServerSocket();
+          serverSocket = getSslServerSocket(logger);
         } else {
-          serverSocket = getServerSocket();
+          serverSocket = getServerSocket(logger);
         }
         serverSocket.setSoTimeout(5 * 1000);
       } catch (Exception e) {
-        logger.error("Unable to listen on " + port + ":" + e);
+        logger.error("httpStub: Unable to listen on " + port + ":" + e);
         e.printStackTrace();
         System.exit(1);
       }
@@ -285,9 +286,8 @@ public class httpStub {
           clientConnection = serverSocket.accept();
           clientConnection.setSoTimeout(5 * config.getHttpClientTimeout());
           // Handle the connection with a separate thread
-
           if (clientConnection != null) {
-            logger.info("httpStub: received connection...",config.getLoglevel());
+            logger.debug("httpStub: received connection...",config.getLoglevel());
             Runnable httpStubWorker = new httpStubWorker(clientConnection,
                 config);
             executor.execute(httpStubWorker);
@@ -301,7 +301,15 @@ public class httpStub {
           logger.error("httpStub: socket exception. " + e);
           e.printStackTrace();
         } finally {
-
+          //try {
+            //if (clientConnection != null) {
+              //System.out.println(config.getLoglevel());
+              //logger.info("httpStub: closing connection...",config.getLoglevel());
+              //clientConnection.close();
+            //}
+//        } catch (Exception e){
+  //          logger.error("httpStub: socket close exception. " + e);
+    //      }  
         }
       }
       /*

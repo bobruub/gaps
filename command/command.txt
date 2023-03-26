@@ -8,3 +8,14 @@ cd $HOMELOC
 CLASSPATH=.:$HOMELOC/\gaps.jar:$HOMELOC/\lib/\slf4j.api-1.6.1.jar:$HOMELOC/\lib/\slf4j-simple-1.6.1.jar:$HOMELOC/\lib/\json-smart-2.4.8.jar$:$HOMELOC/\lib/\jedis-2.8.1.jar$:$HOMELOC/\lib/\javax.json-1.0.jar$:$HOMELOC/\lib/\commons-pool2-2.6.2.jar$:$HOMELOC/\lib/\commons-lang3-3.12.0.jar$:$HOMELOC/\lib/\asm-1.0.2.jar$:$HOMELOC/\lib/\amqp-client-5.14.2.jar
 
 java -cp $CLASSPATH -Xmx512m com.mq.mqStub
+
+export CLASSPATH=./lib/gaps.jar:./lib/amqp-client-5.14.2.jar:./lib/commons-lang3-3.12.0.jar:./lib/javax.json-1.0.jar:./lib/json-smart-2.4.8.jar:./lib/slf4j.api-1.6.1.jar:./lib/asm-1.0.2.jar:./lib/commons-pool2-2.6.2.jar:./lib/jedis-2.8.1.jar:./lib/slf4j-simple-1.6.1.jar
+tim@tims-mac-pro gaps % java --enable-preview -cp $CLASSPATH -Xmx512m com.http.httpStub
+
+ENTRYPOINT ["java","-jar /tmp/gaps/gaps.jar:/tmp/gaps/lib/amqp-client-5.14.2.jar:/tmp/gaps/lib/commons-lang3-3.12.0.jar:/tmp/gaps/lib/javax.json-1.0.jar:/tmp/gaps/lib/json-smart-2.4.8.jar:/tmp/gaps/lib/slf4j.api-1.6.1.jar:/tmp/gaps/lib/asm-1.0.2.jar:/tmp/gaps/lib/commons-pool2-2.6.2.jar:/tmp/gaps/lib/jedis-2.8.1.jar:/tmp/gaps/lib/slf4j-simple-1.6.1.jar","-Xmx512m","com.http.httpStub"]
+
+ENTRYPOINT ["java","--enable-preview","-cp","/tmp/gaps/gaps.jar:/tmp/gaps/lib/amqp-client-5.14.2.jar:/tmp/gaps/lib/commons-lang3-3.12.0.jar:/tmp/gaps/lib/javax.json-1.0.jar:/tmp/gaps/lib/json-smart-2.4.8.jar:/tmp/gaps/lib/slf4j.api-1.6.1.jar:/tmp/gaps/lib/asm-1.0.2.jar:/tmp/gaps/lib/commons-pool2-2.6.2.jar:/tmp/gaps/lib/jedis-2.8.1.jar:/tmp/gaps/lib/slf4j-simple-1.6.1.jar","-Xmx512m","com.http.httpStub"]
+
+docker run --hostname=3d9f4f528103 --mac-address=02:42:ac:11:00:02 --env=tach --env=PATH=/opt/openjdk-19/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin --env=JAVA_HOME=/opt/openjdk-19 --env=JAVA_VERSION=19-ea+5 --workdir=/tmp/gaps --restart=no --runtime=runc -d gaps:v1
+
+docker run --hostname=151e2b06d36a --volume=/home/tim/gaps-docker/gaps-docker/config:/tmp/gaps/config --workdir=/tmp/gaps -p 2992:2525 --runtime=runc -d gaps:v1

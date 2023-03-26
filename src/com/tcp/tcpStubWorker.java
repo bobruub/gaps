@@ -15,10 +15,12 @@ import com.core.stubWorker;
 import org.apache.commons.lang3.StringUtils;
 
 import net.minidev.json.JSONArray;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
+//import redis.clients.jedis.Jedis;
+//import redis.clients.jedis.JedisPool;
 
 public class tcpStubWorker extends stubWorker implements Runnable {
+
+  private logger logger;
 
 
     private final Socket clientSocket;
@@ -47,11 +49,11 @@ public class tcpStubWorker extends stubWorker implements Runnable {
     int destPort = clientSocket.getPort();
     logger.info("Accepted connection to "+destName+" (" + destAddr + ")" + " on port "+destPort+".");
 
-    Jedis jedis = null;
-    if (!StringUtils.isEmpty(config.getRedisHostName())) {
-        JedisPool jedisPool = config.getJedisPool() ;
-        jedis = jedisPool.getResource();
-    }   
+//    Jedis jedis = null;
+//    if (!StringUtils.isEmpty(config.getRedisHostName())) {
+//        JedisPool jedisPool = config.getJedisPool() ;
+//        jedis = jedisPool.getResource();
+//    }   
 
        //
     // create an input and output socket
@@ -88,7 +90,7 @@ public class tcpStubWorker extends stubWorker implements Runnable {
     //
     String responseMsg = null;
     int defaultPause = 0;
-    boolean responseTemplateMessage = setResponseTemplate(inputMsgLines.toString(),requestResponseArray);
+    boolean responseTemplateMessage = setResponseTemplate(inputMsgLines.toString(),requestResponseArray, config);
     if (responseTemplateMessage) {
       responseMsg = getTemplate("templateContents");
       defaultPause = Integer.parseInt(getTemplate("templatePause"));
@@ -98,7 +100,7 @@ public class tcpStubWorker extends stubWorker implements Runnable {
     // got the template, lets process the variables
     //
     logger.info("tcpStubWorker: Processing: " + responseMsg,config.getLoglevel());
-    responseMsg = processVariables(inputMsgLines.toString(), dataVariableArray, responseMsg, jedis);
+    responseMsg = processVariables(inputMsgLines.toString(), dataVariableArray, responseMsg, config);
     logger.info("tcpStubWorker: Processed: " + responseMsg,config.getLoglevel());
 
     //

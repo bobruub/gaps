@@ -5,6 +5,14 @@ import com.core.config;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+
 /**
 class: stubWorker
 Purpose: processes for inbound messages
@@ -31,6 +39,7 @@ public class stubWorker {
     HashMap<String, String> templateContent = new HashMap<String, String>();
     String currLine = null;
     logger logger = new logger();
+    private config config;
     //
     // set and get array for the template message, this is used in other processes
     // for extracting details about the template.
@@ -95,7 +104,7 @@ public class stubWorker {
 	// 	"contents": "HTTP/1.1 200 OK\nTabcorpAuth: %TabcorpAuth%\nContent-Length: %Content-Length%\nConnection: close\nContent-Type: %Content-Type%\n\n{\"transactions\": [%transactions%],\"_links\": {\"self\": \"https://%selfUrl%\",\"next\": \"https://%nextUrl%?transactionRef=7761910\"},\"authentication\": {\"token\": \"%TabcorpAuth%\",\"inactivityExpiry\": \"2022-05-02T09:20:47.817Z\",\"absoluteExpiry\": \"2022-05-02T09:20:47.305Z\",\"scopes\": [\"*\"]}}"
 	// }
     //
-    public boolean setResponseTemplate(String inMessage, JSONArray requestResponseArray) {
+    public boolean setResponseTemplate(String inMessage, JSONArray requestResponseArray,config config) {
 
         // JSONParser parser = null;
         // JSONObject responseVariables = null;
@@ -117,13 +126,65 @@ public class stubWorker {
         String templatePause = null;
         String responseName = null;
         boolean responseTemplateMessage = false;
+        String callBackResponse = null;
         // loop through response message array looking for a match
         while (loopCounter < requestResponseArray.size()) {
             JSONObject variable = (JSONObject) requestResponseArray.get(loopCounter);
             loopCounter++;
             String responseType = (String) variable.get("type");
             responseName = (String) variable.get("name");
+            String callForwardUrl = (String) variable.get("callForwardUrl");
             // if the current response message check is of type path
+            if (callForwardUrl != null && !callForwardUrl.isEmpty() ){
+                String callForwardBody = (String) variable.get("callForwardBody");
+                String callForwardType = (String) variable.get("callForwardType");
+                String USER_AGENT = "Mozilla/5.0";
+                String GET_URL = callForwardUrl;
+                if (callForwardType.toUpperCase().equals("GET")){
+                    logger.debug("stubWorker: setResponseTemplate: callForwardUrl: " + callForwardUrl,config.getLoglevel());
+                    logger.debug("stubWorker: setResponseTemplate: callForwardBody: " + callForwardBody,config.getLoglevel());
+                    logger.debug("stubWorker: setResponseTemplate: callForwardType: " + callForwardType.toUpperCase(),config.getLoglevel());
+                    logger.debug("stubWorker: setResponseTemplate: inmessage: " + inMessage,config.getLoglevel());
+                    // extract content type from inbound message
+                    var myPattern = Pattern.compile("Content-Type: (.+?),");
+                    Matcher matcher = myPattern.matcher(inMessage);
+                    String contentType = null;
+                    // if the regex matches then this is the correct message
+                    if (matcher.find()) {
+                        contentType = matcher.group(1);
+                    } else {
+                        // default to appplicat/json
+                        contentType = "application/json";
+                    }    
+                    logger.debug("stubWorker: setResponseTemplate: contentType: " + contentType,config.getLoglevel());
+                    try {
+                        URL obj = new URL(GET_URL);
+                        HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+                        con.setRequestMethod("GET");
+                        con.setRequestProperty("User-Agent", USER_AGENT);
+                        con.setRequestProperty("Content-Type", contentType);
+                        int responseCode = con.getResponseCode();
+                        logger.debug("stubWorker: GET Response Code : " + responseCode,config.getLoglevel());
+                        if (responseCode == HttpURLConnection.HTTP_OK) { // success
+                            BufferedReader input = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                            String inputLine;
+                            StringBuffer response = new StringBuffer();
+                            while ((inputLine = input.readLine()) != null) {
+                                response.append(inputLine);
+                            }
+                            input.close();
+                            con.disconnect();
+                            // print result
+                            logger.debug("stubWorker: setResponseTemplate: response: " + response.toString(),config.getLoglevel());
+                            callBackResponse = response.toString();
+                        }
+
+                    } catch(Exception e){
+                        logger.error("stubWorker: call forward: " + callForwardUrl + " failed. exception: " + e.toString());
+                    }
+                }
+            }    
+
             if (responseType.equals("path")) {
                 String responseLookupWith = (String) variable.get("lookupWith");
                 String responseLookupValue = (String) variable.get("lookupValue");
@@ -188,6 +249,13 @@ public class stubWorker {
             setTemplate("templateContents", responseTemplate);
             setTemplate("templatePause",templatePause);
             setTemplate("templateName",responseName);
+//            logger.debug("stubWorker: IN TEMPLATE: scallBackResponse: " + callBackResponse);
+
+            if (callBackResponse != null && !callBackResponse.isEmpty()){
+//                logger.debug("stubWorker: IN TEMPLATE: callBackResponse: " + callBackResponse.toString());
+                setTemplate("templateCallBackResponse",callBackResponse);
+                logger.debug("stubWorker: templateCallBackResponse: " + getTemplate("templateCallBackResponse"),config.getLoglevel());
+            }
         }
         return responseTemplateMessage;
     }
@@ -196,8 +264,8 @@ public class stubWorker {
 //
     //public String processVariables(Vector<String> inputMsgLines, String dataVariablesString, JedisPool jedisPool, String responseMsg) {
       
-        public String processVariables(String inMessage, JSONArray dataVariableArray, String responseMsg, Jedis jedis) {
-
+        public String processVariables(String inMessage, JSONArray dataVariableArray, String responseMsg, config config) {
+            logger.debug("stubWorker: processVariables: inMessage: " + inMessage,config.getLoglevel());
         //
         // loop required for those variables which aren't dependent on indivuduals lines
         // or any other variables being set primarily fixed strings
@@ -222,6 +290,7 @@ public class stubWorker {
                 if (bypassVariable(variableName, allowBypass, responseMsg)) {
                     continue;
                 }
+                logger.debug("stubWorker: processVariables: name: " + variableName,config.getLoglevel());
                 // if the variable has already been set dont process it again
                 if (variableExists(variableName)){
                     continue;
@@ -230,15 +299,18 @@ public class stubWorker {
                 if (variable.containsKey("format")) {
                     formatArray = (JSONArray) variable.get("format");
                 }
+                logger.debug("stubWorker: processVariables: \ttype: " + variableType,config.getLoglevel());
                 int oddsCounter = 0;
                 variableReplace = null;
                 JSONObject format = (JSONObject) formatArray.get(oddsCounter);
+                logger.debug("stubWorker: processVariables: \tformat: " + format,config.getLoglevel());
 
                 if (variableType.equals("substring")) {
-                    variableReplace = processSubstring(format,currLine);
+                    variableReplace = processSubstring(format,currLine,config);
 
                 } else if (variableType.equals("regex")) {
-                    variableReplace = processRegex(format,currLine);
+                    String formatValue = (String) format.get("value");
+                    variableReplace = processRegex(format,currLine,config);
 
                 } else if (variableType.equals("string")) {
                     variableReplace = processString(format);
@@ -308,7 +380,12 @@ public class stubWorker {
                 //        }
                 //    ]
                 // }
-                //Jedis jedis = jedisPool.getResource();
+                //
+                // open a connection from the redis pool
+                //
+                logger.debug("httpStubWorker: opening redis connection for read ....",config.getLoglevel()); 
+                JedisPool jedisPool = config.getJedisPool() ;
+                Jedis jedis = jedisPool.getResource();
                 String redisSetName = (String) format.get("redisSetName");
                 String redisKeyName = (String) format.get("redisKeyName");
                 // if the key isnt set then stop trying
@@ -317,6 +394,8 @@ public class stubWorker {
                 }
                 String variableValue = getVariable(redisKeyName);
                 variableReplace = jedis.hget(redisSetName, variableValue);
+                //
+                // close the jedis connection
                 jedis.close();
             }
             if (variableType.equals("concatenate")) {
@@ -362,18 +441,32 @@ public class stubWorker {
                 //        }
                 //    ]
                 //  }
-                //Jedis jedis = jedisPool.getResource();
+                logger.debug("httpStubWorker: opening redis connection for update ....",config.getLoglevel()); 
                 String redisSetName = (String) format.get("redisSetName");
                 String redisKeyName = (String) format.get("redisKeyName");
                 String redisKeyValue = (String) format.get("redisKeyValue");
+                logger.debug("httpStubWorker: redis for update redisSetName: " + redisSetName,config.getLoglevel()); 
+                logger.debug("httpStubWorker: redis for update redisKeyName: " + redisKeyName,config.getLoglevel()); 
+                logger.debug("httpStubWorker: redis for update redisKeyValue: " + redisKeyValue,config.getLoglevel()); 
                 // if the key or its value aren't set then stop trying
                 if (!variableExists(redisKeyName) || !variableExists(redisKeyValue)){
                     continue;
                 }
+                //
+                // open a connection from the redis pool
+                //
+                JedisPool jedisPool = config.getJedisPool() ;
+                Jedis jedis = jedisPool.getResource();
                 String keyName = getVariable(redisKeyName);
                 String keyValue = getVariable(redisKeyValue);
+                logger.debug("httpStubWorker: redis for update keyName: " + keyName,config.getLoglevel()); 
+                logger.debug("httpStubWorker: redis for update redisKeyValue: " + keyValue,config.getLoglevel()); 
                 variableReplace = String.valueOf(jedis.hset(redisSetName, keyName, keyValue));
+                //
+                // close the jedis connection
+                //
                 jedis.close();
+
             }
             // if a variable is set and it exists in the response message then replace it here
             if (variableReplace != null) {
@@ -387,8 +480,8 @@ public class stubWorker {
         return responseMsg;
     }
 
-    public String processContentLengthType(String responseMsg) {
-        logger.debug("stubWorker: processing content length: " + responseMsg);
+    public String processContentLengthType(String responseMsg, config config) {
+        logger.debug("stubWorker: processing content length: " + responseMsg,config.getLoglevel());
         String variableValue = null;
         // splitting on empty line, header in part 0, body is remainder
         String[] parts = responseMsg.split("(?:\r\n|[\r\n])[ \t]*(?:\r\n|[\r\n])");
@@ -427,7 +520,7 @@ public class stubWorker {
         System.out.println("Stubworker: " + message);
     }
 
-    public String processSubstring(JSONObject format, String currLine){
+    public String processSubstring(JSONObject format, String currLine,config config){
         //	{
 		//	    "name" : "TabcorpAuth",
 		//	    "type" : "substring",
@@ -451,7 +544,7 @@ public class stubWorker {
         return currLine.substring(formatStartPos, formatEndPos);
     }
 
-    public String processRegex(JSONObject format, String currLine){
+    public String processRegex(JSONObject format, String currLine,config config){
         //  {
 		//	    "name" : "inSessionId",
 		//	    "type" : "regex",
@@ -460,7 +553,9 @@ public class stubWorker {
 		//			"regex" : "session/(.+?) "
 		//		}]
 		//  }
+
         String regexSearch = (String) format.get("regex");
+        logger.debug("stubWorker: processRegex:  regext key: " + regexSearch,config.getLoglevel());
         var myPattern = Pattern.compile(regexSearch);
         Matcher matcher = myPattern.matcher(currLine.toString());
         String variableReplace = null;

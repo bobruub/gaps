@@ -15,15 +15,19 @@ public class logger {
         if (logLevel.equals("INFO") || logLevel.equals("DEBUG"))
             System.out.println("INFO: " + name);
 
-}
+    }  
 
     public void error(String string ) {
         System.out.println("ERRR: " + string);
 
     }
 
+    public void conf(String string ) {
+        System.out.println("CONF: " + string);
+
+    }
     public void debug(String string) {
-        System.out.println("DBUG: " + string);
+            System.out.println("DBUG: " + string);
     }
 
      public void debug(String string,String logLevel ) {

@@ -212,7 +212,7 @@ This file contains the replacebale data variables that are inserted into the res
 ||
 | name |  | Yes | string | alphanumeric string | the name fo the data varible
 | type |  | Yes | string | string, number, date, guid, alphanumeric, substring, regex, redisRead, redisUpdate, concatenate | the type of the variable
-| allowBypass |  | Yes | string | true or fales | if true always geberates a variable even if not required for response
+| allowBypass |  | Yes | string | true or fales | if true always generates a variable even if not required for response replacement
 | format |  | Yes | string |  | the format details of the data variable type
 ||
 |**type**|**format**
@@ -244,7 +244,7 @@ This file contains the replacebale data variables that are inserted into the res
 
 ## Runtime.
 
-### Linux (adjust as you will for windows)
+### Linux (adjust as you will for windows and various versions of java)
 
 HOMELOC=/\Users/\tim/\Documents/\gaps
 
@@ -254,15 +254,35 @@ java -cp $CLASSPATH -Xmx512m com.mq.mqStub
 java -cp $CLASSPATH -Xmx512m com.http.httpStub
 java -cp $CLASSPATH -Xmx512m com.tcp.tcpStub
 
+## Docker
 
+GAPS can (and probably should) be run as a docker container.
 
+The config files described above are indepenent of GAPS itself and can be loaded into the Docker instance using the --volume command.
+e.g. If the path to your config directory is /tmp/gaps_stub/config then you would enter /tmp/gaps_stub 
+```
+--volume=/tmp/gaps_stub/:/tmp/gaps
+```
 
+### Dockerfile for httpStub
+```
+FROM openjdk:19-jdk-alpine
 
+RUN mkdir -p /tmp/gaps/config
 
+COPY ./lib/* /tmp/gaps/lib/
+RUN cd /tmp/gaps
+WORKDIR /tmp/gaps
 
+EXPOSE 2525
+ENTRYPOINT ["java","--enable-preview","-cp","/tmp/gaps/lib/gaps.jar:/tmp/gaps/lib/amqp-client-5.14.2.jar:/tmp/gaps/lib/commons-lang3-3.12.0.jar:/tmp/gaps/lib/javax.json-1.0.jar:/tmp/gaps/lib/json-smart-2.4.8.jar:/tmp/gaps/lib/slf4j.api-1.6.1.jar:/tmp/gaps/lib/asm-1.0.2.jar:/tmp/gaps/lib/commons-pool2-2.6.2.jar:/tmp/gaps/lib/jedis-2.8.1.jar:/tmp/gaps/lib/slf4j-simple-1.6.1.jar","-Xmx512m","com.http.httpStub"]
+```
 
-
-
-
-
-
+### Docker Build
+```
+docker build -t gaps:v1 .
+```
+### Docker Run
+```
+docker run --volume=/tmp/gaps_stub/:/tmp/gaps/ --workdir=/tmp/gaps -p 2525:2525 --runtime=runc -d gaps:v1 --name gaps_2525
+```
