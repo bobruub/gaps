@@ -59,7 +59,7 @@ public class httpStub {
   static int redisPort = 0;
   static Jedis jedis;
   static JedisPool jedisPool;
-  static String httpStubVersion = "1.7";
+  static String httpStubVersion = "2.0";
   static boolean jedisRequired = false;
   static boolean securePort = false;
 
@@ -79,6 +79,7 @@ public class httpStub {
     //
     logger logger = new logger();
     config = new config();
+
     //
     // load the configuration file
     //

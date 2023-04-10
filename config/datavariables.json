@@ -10,17 +10,17 @@
 				}]
 		},
 		{
-			"name" : "AlphaNumer",
-			"type" : "regex",
+			"name" : "Connection",
+			"type" : "string",
 			"allowBypass": "true",
 			"format" : [{
-					"regex" : "AlphaNumer\": \"(.+?)\""					
+					"value" : "keep-alive"					
 				}]
 		},
 		{
 			"name" : "Content-Type",
 			"type" : "string",
-			"allowBypass": "false",
+			"allowBypass": "true",
 			"format" : [
 				{
 					"value" : "application/json"					
@@ -28,7 +28,102 @@
 			]
 		},
 		{
-			"name" : "tokenNumber",
+			"name" : "userId",
+			"type" : "aplhanumeric",
+			"allowBypass": "true",
+			"format" : [{
+				"length" : 24,
+				"case": "lower",
+				"mode": "hex"					
+				}]
+		},
+		
+		{
+			"name" : "AlphaNumer",
+			"type" : "regex",
+			"allowBypass": "true",
+			"format" : [{
+					"regex" : "AlphaNumer\": \"(.+?)\""					
+				}]
+		},
+		
+	    {
+			"name" : "withIssuer",
+			"type" : "string",
+			"allowBypass": "true",
+			"format" : [
+				{
+					"value" : "tabcorp"					
+				}
+			]
+		},
+		{
+			"name" : "withSubject",
+			"type" : "string",
+			"allowBypass": "true",
+			"format" : [
+				{
+					"value" : "email|"					
+				}
+			]
+		},
+		{
+			"name" : "withClaim",
+			"type" : "string",
+			"allowBypass": "true",
+			"format" : [
+				{
+					"value" : "tabcorp auth0"					
+				}
+			]
+		},
+		{
+			"name" : "username",
+			"type" : "regex",
+			"allowBypass": "false",
+			"format" : [{
+					"regex" : "username\": \"(.+?)\""					
+				}]
+		},			
+		{
+			"name" : "emailName",
+			"type" : "boundary",
+			"allowBypass": "false",
+			"format" : [{
+					"left" : "email=",
+					"right" : "&"					
+				}]
+		},
+		{
+			"name" : "emailAddressGetUser",
+			"type" : "regex",
+			"allowBypass": "false",
+			"format" : [{
+					"regex" : "email=(.+?)\\s"					
+				}]
+		},
+		{
+			"name" : "emailAddress",
+			"type" : "regex",
+			"allowBypass": "false",
+			"format" : [{
+					"regex" : "email\": \"(.+?)\""					
+				}]
+		},
+
+		{
+			"name" : "access_token",
+			"type" : "jwt",
+			"allowBypass": "true",
+			"format" : [{
+					"withIssuer" : "withIssuer",
+					"withSubject" : "withSubject",
+					"withClaim" : "withClaim",
+					"username" : "redisUserId"
+				}]
+		},
+		{
+			"name" : "accessToken",
 			"type" : "number",
 			"allowBypass": "true",
 			"format" : [{
@@ -40,7 +135,15 @@
 			"type" : "string",
 			"allowBypass": "true",
 			"format" : [{
-					"value" : "mqStub version 1.0"					
+					"value" : "HTTP STUB"					
+				}]
+		},
+		{
+			"name" : "stubVersion",
+			"type" : "string",
+			"allowBypass": "true",
+			"format" : [{
+					"value" : "http version 1.1"					
 				}]
 		},
 		{
@@ -54,6 +157,18 @@
 			]
 		},
 		{
+			"name" : "created_at",
+			"type" : "date",
+			"allowBypass": "true",
+			"format" : [
+				{
+					"value" : "yyyy-MM-dd'T'HH:mm:ss.SSSZ"					
+				}
+			]
+		},
+
+
+		{
 			"name" : "GUID",
 			"type" : "guid",
 			"allowBypass": "false"			
@@ -64,7 +179,8 @@
 			"allowBypass": "true",
 			"format" : [{
 					"length" : 24,
-					"case": "upper"
+					"case": "upper",
+					"mode": "full"
 				}]
 		},{
 			    "name" : "sessionIdNumber",
@@ -78,6 +194,41 @@
 			            "redisKeyValue": "sessionId"
 			        }
 			    ]
-		}
+		},
+		{
+			"name" : "sessionIdNumber",
+			"type" : "redisUpdate",
+			"action": "variable",
+			"allowBypass": "false",
+			"format" : [
+				{
+					"redisSetName" : "auth_users_details",
+					"redisKeyName" : "emailAddress",
+					"redisKeyValue": "userId"
+				}
+			]
+	},
+	{
+		"name" : "redisUserId",
+		"type" : "redisRead",
+		"action": "variable",
+		"allowBypass": "true",
+		"format" : [
+			{
+				"redisSetName" : "auth_users_details",
+				"redisKeyName" : "emailAddressGetUser"
+			}
+		]
+},
+{
+	"name" : "00-default-response-message",
+	"comment": "REQUIRED: Sends back the whole message in the case of message which is not found",
+	"type" : "regex",
+	"allowBypass": "true",
+	"format" : [{
+			"regex" : "(.*)",
+			"global": "true"					
+		}]
+}
 	]
 }

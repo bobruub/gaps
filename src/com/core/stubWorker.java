@@ -4,11 +4,15 @@ import com.core.logger;
 import com.core.config;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Date;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -35,6 +39,7 @@ import redis.clients.jedis.JedisPool;
 
 public class stubWorker {
 
+    private static final int AlphaNumericS = 0;
     HashMap<String, String> variableContent = new HashMap<String, String>();
     HashMap<String, String> templateContent = new HashMap<String, String>();
     String currLine = null;
@@ -52,7 +57,6 @@ public class stubWorker {
     public String getTemplate(String templateName) {
         return templateContent.get(templateName);
     }
-
     //
     // set and get array for the variables, when the are processed are stored in in a key/pair manner
     //     
@@ -134,7 +138,11 @@ public class stubWorker {
             String responseType = (String) variable.get("type");
             responseName = (String) variable.get("name");
             String callForwardUrl = (String) variable.get("callForwardUrl");
-            // if the current response message check is of type path
+            // experimental code to enable a call forward ability
+            // 1. a call is made to the stub
+            // 2. a call is made by the stub
+            // 3. the response message from call (2) is processed
+            // 4. the response message is passed to the original call (1)
             if (callForwardUrl != null && !callForwardUrl.isEmpty() ){
                 String callForwardBody = (String) variable.get("callForwardBody");
                 String callForwardType = (String) variable.get("callForwardType");
@@ -249,14 +257,11 @@ public class stubWorker {
             setTemplate("templateContents", responseTemplate);
             setTemplate("templatePause",templatePause);
             setTemplate("templateName",responseName);
-//            logger.debug("stubWorker: IN TEMPLATE: scallBackResponse: " + callBackResponse);
-
             if (callBackResponse != null && !callBackResponse.isEmpty()){
-//                logger.debug("stubWorker: IN TEMPLATE: callBackResponse: " + callBackResponse.toString());
                 setTemplate("templateCallBackResponse",callBackResponse);
                 logger.debug("stubWorker: templateCallBackResponse: " + getTemplate("templateCallBackResponse"),config.getLoglevel());
             }
-        }
+        } 
         return responseTemplateMessage;
     }
 //
@@ -277,7 +282,7 @@ public class stubWorker {
             currLine = inMessage;
             if (currLine.length() == 0) {
                 return "input message was empty"; 
-              }
+            }
             loopCounter = 0;
             variableReplace = null;
             while (loopCounter < dataVariableArray.size()) {
@@ -288,11 +293,13 @@ public class stubWorker {
                 // check the variable is required in the repsonse message before processng
                 // unless bypass is set to false
                 if (bypassVariable(variableName, allowBypass, responseMsg)) {
+                    logger.debug("stubWorker: processVariables: Skipping name: " + variableName,config.getLoglevel());
                     continue;
                 }
                 logger.debug("stubWorker: processVariables: name: " + variableName,config.getLoglevel());
                 // if the variable has already been set dont process it again
                 if (variableExists(variableName)){
+                    logger.debug("stubWorker: processVariables: Already processed name: " + variableName,config.getLoglevel());
                     continue;
                 }
                 String variableType = (String) variable.get("type");
@@ -304,30 +311,30 @@ public class stubWorker {
                 variableReplace = null;
                 JSONObject format = (JSONObject) formatArray.get(oddsCounter);
                 logger.debug("stubWorker: processVariables: \tformat: " + format,config.getLoglevel());
-
+                logger.debug("stubWorker: processVariables: \tcurrLine: " + currLine,config.getLoglevel());
+                // depending on the type of the process call the correpsonding module.
                 if (variableType.equals("substring")) {
                     variableReplace = processSubstring(format,currLine,config);
-
                 } else if (variableType.equals("regex")) {
                     String formatValue = (String) format.get("value");
                     variableReplace = processRegex(format,currLine,config);
-
                 } else if (variableType.equals("string")) {
                     variableReplace = processString(format);
-
                 } else if (variableType.equals("date")) {
                     variableReplace = processDate(format);
-
                 } else if (variableType.equals("guid")) {
                     variableReplace = processGuid().toString();
-
                 } else if (variableType.equals("aplhanumeric")) {
                     variableReplace = processAlphaNumeric(format);
-                    
                 } else if (variableType.equals("number")) {
                     variableReplace = processNumber(format);
-                    
+                } else if (variableType.equals("jwt")) {
+                    variableReplace = processJwt(format, config);
+                } else if (variableType.equals("boundary")) {
+                    variableReplace = processBoundary(format,currLine,config);
                 }
+                logger.debug("stubWorker: processVariables: \tvariableReplace: " + variableReplace,config.getLoglevel());
+
                 // if a variable is found then replace it in the response message 
                 if (variableReplace != null) {
                     String searchSequence = "%" + variableName + "%";
@@ -341,8 +348,8 @@ public class stubWorker {
        // }
         //
         // another loop required for those which depend on variables already being set
-        // above, at this stage only redis lookups.
-        // and redis updates and concatenations (which rely on all sorts of variables being set)
+        // above, at this stage only 
+        // redis lookups, redis updates and concatenations (which rely on all sorts of variables being set)
         //
         loopCounter = 0;
         variableReplace = null;
@@ -368,6 +375,7 @@ public class stubWorker {
             variableReplace = null;
             JSONObject format = (JSONObject) formatArray.get(oddsCounter);
             if (variableType.equals("redisRead")) {
+                // redis support is only for hashes, key field and data field.
                 //{
                 //    "name" : "redisCardNumber",
                 //    "type" : "redisRead",
@@ -388,12 +396,19 @@ public class stubWorker {
                 Jedis jedis = jedisPool.getResource();
                 String redisSetName = (String) format.get("redisSetName");
                 String redisKeyName = (String) format.get("redisKeyName");
+                logger.debug("httpStubWorker: redisSetName: " + redisSetName,config.getLoglevel()); 
+                logger.debug("httpStubWorker: redisKeyName: " + redisKeyName,config.getLoglevel()); 
                 // if the key isnt set then stop trying
                 if (!variableExists(redisKeyName)) {
                     continue;
                 }
                 String variableValue = getVariable(redisKeyName);
+                logger.debug("httpStubWorker: variableValue: " + variableValue,config.getLoglevel()); 
                 variableReplace = jedis.hget(redisSetName, variableValue);
+                if (variableReplace == null ){
+                    variableReplace = "no redis data for: " + redisSetName + " - " + redisKeyName + " = " + variableValue;
+                }
+                logger.debug("httpStubWorker: variableReplace: " + variableReplace,config.getLoglevel()); 
                 //
                 // close the jedis connection
                 jedis.close();
@@ -428,6 +443,7 @@ public class stubWorker {
             
             }
             if (variableType.equals("redisUpdate")) {
+                // redis support is only for hashes, key field and data field.
                 //  {
                 //    "name" : "sessionCardNumber",
                 //    "type" : "redisUpdate",
@@ -452,19 +468,16 @@ public class stubWorker {
                 if (!variableExists(redisKeyName) || !variableExists(redisKeyValue)){
                     continue;
                 }
-                //
                 // open a connection from the redis pool
-                //
                 JedisPool jedisPool = config.getJedisPool() ;
                 Jedis jedis = jedisPool.getResource();
                 String keyName = getVariable(redisKeyName);
                 String keyValue = getVariable(redisKeyValue);
                 logger.debug("httpStubWorker: redis for update keyName: " + keyName,config.getLoglevel()); 
                 logger.debug("httpStubWorker: redis for update redisKeyValue: " + keyValue,config.getLoglevel()); 
+                // write the details
                 variableReplace = String.valueOf(jedis.hset(redisSetName, keyName, keyValue));
-                //
                 // close the jedis connection
-                //
                 jedis.close();
 
             }
@@ -555,12 +568,27 @@ public class stubWorker {
 		//  }
 
         String regexSearch = (String) format.get("regex");
+        String regexSearchGlobal = (String) format.get("global");
+        if (regexSearchGlobal == null){
+            regexSearchGlobal = "false";
+        }
         logger.debug("stubWorker: processRegex:  regext key: " + regexSearch,config.getLoglevel());
         var myPattern = Pattern.compile(regexSearch);
         Matcher matcher = myPattern.matcher(currLine.toString());
-        String variableReplace = null;
-        if (matcher.find()) {
-            variableReplace = matcher.group(1);
+        String variableReplace = "";
+        if (regexSearchGlobal.toLowerCase().equals("true")){
+            // needs to loop as java regex doesn't have a global or ignore line breaks /g/m
+            while(matcher.find()) {
+                variableReplace += matcher.group();
+            }
+        } else {
+            if (matcher.find()) {
+                variableReplace = matcher.group(1);
+            }
+        }
+        // if nothing found then set resposne as null, is checked elsewhere in the code
+        if (variableReplace.length() == 0){
+            variableReplace = null;
         }
         return variableReplace;
     }
@@ -610,12 +638,21 @@ public class stubWorker {
 		//	    "format" : [{
 		//			"length" : 24,
 		//			"case": "upper"
+        //          "mode": "hex"
 		//		}]
 		//  }
         String stringCase = (String) format.get("case");
         long lengthVar = (long) format.get("length");
+        String stringAlphaMode = (String) format.get("mode");
         Integer stringLength = (int) (long) lengthVar;
-        String AlphaNumericString = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvxyz";
+        String AlphaNumericString = null;
+        if (stringAlphaMode.equals("full")) {
+            AlphaNumericString = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvxyz";
+        } else if (stringAlphaMode.equals("hex")) {
+            AlphaNumericString = "0123456789abcdef";
+        } else { // defaults to whatever you put in the mode
+            AlphaNumericString = stringAlphaMode;
+        }              
         StringBuilder sb = new StringBuilder(stringLength);
         for (int x = 0; x < stringLength; x++) {
             int index = (int)(AlphaNumericString.length() * Math.random());
@@ -641,7 +678,6 @@ public class stubWorker {
 		//			"length" : 16					
 		//		}]
 		//  }
-
         long numberLength = (long) format.get("length");
         Integer lengthNumber = (int) (long) numberLength;
         String AlphaNumericString = "0123456789";
@@ -653,5 +689,97 @@ public class stubWorker {
         return sb.toString();
     }
 
+    public String processJwt(JSONObject format, config config){
+        // needs work on defining exactly what optiosn are required.
+        /*
+         {
+			"name" : "access_token",
+			"type" : "jwt",
+			"allowBypass": "true",
+			"format" : [{
+					"withIssuer" : "withIssuer",
+					"withSubject" : "withSubject",
+					"withClaim" : "withClaim",
+					"username" : "redisUserId"
+				}]
+		} */
+/*	var baseData ='{"https://tab.com.au/scope": "[]", "https://tab.com.au/email": "' + username +'",';
+	baseData += '"iss": "https://login.nile.beta.tab.com.au/",';
+	baseData += '"sub": "email|642a7c0509be5faf726d1456",';
+	baseData += '"aud": [';
+	baseData += '"https://wagering-test-nile.tabcorp-dev.auth0.com/api/v2/",';
+	baseData += '"https://wagering-test-nile.tabcorp-dev.auth0.com/userinfo"';
+	baseData += '],';
+	baseData += '"iat": ' + currentDateIs + ',';
+	baseData += '"exp": ' + expiryDate + ',';
+	baseData += '"azp": "k2OPSu2rBSAUka9Eeu9XPQ090WRM7Z5D",';
+	baseData += '"scope": "openid profile email read:current_user update:current_user_metadata delete:current_user_metadata create:current_user_metadata create:current_user_device_credentials delete:current_user_device_credentials update:current_user_identities",';
+	baseData += '"gty": "password"';
+	baseData += '}';
+
+    https://auth0.com/docs/secure/tokens/json-web-tokens/json-web-token-claims  
+    */
+
+
+    String  withIssuerVar = (String) format.get("withIssuer");
+    String  withSubjectVar = (String) format.get("withSubject");
+    String  withClaimVar = (String) format.get("withClaim");
+    String  usernameVar = (String) format.get("username");
+    String  userIdVar = (String) format.get("redisUserId");
+
+    String withIssuer = getVariable(withIssuerVar);
+    String withSubject = getVariable(withSubjectVar);
+    String withClaim = getVariable(withClaimVar);
+    String redisUserId = getVariable(userIdVar);
+
+    logger.info("stubWorker: processJwt:  withIssuer: " + withIssuer,config.getLoglevel());
+    logger.info("stubWorker: processJwt:  withSubject: " + withSubject,config.getLoglevel());
+    logger.info("stubWorker: processJwt:  withClaim: " + withClaim,config.getLoglevel());
+    logger.info("stubWorker: processJwt:  redisUserId: " + redisUserId,config.getLoglevel());
+
+    withSubject += redisUserId;
+    Algorithm algorithm = Algorithm.HMAC256("tabcorp");
+    JWTVerifier verifier = JWT.require(algorithm).withIssuer(withIssuer).build();
+
+
+    String jwtToken = JWT.create()
+                                .withIssuer(withIssuer)
+                                .withSubject(withSubject)
+                                .withIssuedAt(new Date())
+                                .withExpiresAt(new Date(System.currentTimeMillis() + 5000L))
+                                .withJWTId(UUID.randomUUID()
+                                .toString())
+                                .withNotBefore(new Date(System.currentTimeMillis() + 1000L))
+                                .sign(algorithm);
+
+        return jwtToken;
+    }
+
+    public String processBoundary(JSONObject format, String currLine, config config){
+//		{
+//			"name" : "emailName",
+//			"type" : "boundary",
+//			"allowBypass": "false",
+//			"format" : [{
+//					"left" : "email=",
+//					"right" : "&"					
+//				}]
+//		}
+
+        String leftBoundary = (String) format.get("left");
+        String rightBoundary = (String) format.get("right");
+
+        logger.debug("httpStubWorker: processBoundary: leftBoundary: " + leftBoundary,config.getLoglevel()); 
+        logger.debug("httpStubWorker: processBoundary: rightBoundary: " + rightBoundary,config.getLoglevel()); 
+        int lb = currLine.indexOf(leftBoundary);
+        int rb = currLine.indexOf(rightBoundary);
+        String variableReplace = null; 
+        if ((lb > 0) && (rb > 0)){
+            lb += leftBoundary.length();
+            variableReplace = currLine.substring(lb, rb);
+        }
+        return variableReplace;
+
+    }
 
 }

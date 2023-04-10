@@ -280,9 +280,16 @@ ENTRYPOINT ["java","--enable-preview","-cp","/tmp/gaps/lib/gaps.jar:/tmp/gaps/li
 
 ### Docker Build
 ```
-docker build -t gaps:v1 .
+docker build -t image_gaps_auth0 .
 ```
 ### Docker Run
+
 ```
-docker run --volume=/tmp/gaps_stub/:/tmp/gaps/ --workdir=/tmp/gaps -p 2525:2525 --runtime=runc -d gaps:v1 --name gaps_2525
+docker run -p 2525:2525 --volume=/Users/tim/_git/gaps/:/tmp/gaps --runtime=runc -d image_gaps_auth0 --name perf_gaps_auth0_2525
+```
+
+To test whether the image is working correctly.
+
+```
+docker run -i -t perf_gaps_auth0_2525 /bin/sh  
 ```

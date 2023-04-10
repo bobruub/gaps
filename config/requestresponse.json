@@ -1,13 +1,13 @@
 {
 	"response": [
-		{
-			"name": "00-TCP-status",
-			"type": "body",
-			"lookupWith": "regex",
-			"lookupValue": "tcpstatus",
-			"pause": "100",
-			"contents": "{\"response\": [{\"status\": \"OK\",\"message\": \"TCP STUB - status OK\",\"version\": \"%stubName%\",\"timestamp\": \"%todaysDate%\",\"GUID\": \"%GUID%\",\"Number\": \"%tokenNumber%\",\"AlphaNumer\": \"%sessionId%\"}]}"
-		},
+	{
+		"name": "00-TCP-status",
+		"type": "body",
+		"lookupWith": "regex",
+		"lookupValue": "tcpstatus",
+		"pause": "100",
+		"contents": "{\"response\": [{\"status\": \"OK\",\"message\": \"TCP STUB - status OK\",\"version\": \"%stubName%\",\"timestamp\": \"%todaysDate%\",\"GUID\": \"%GUID%\",\"Number\": \"%tokenNumber%\",\"AlphaNumer\": \"%sessionId%\"}]}"
+	},
 	{
         "name": "00-MQ-status",
 		"type": "body",
@@ -22,7 +22,7 @@
 		"lookupWith": "regex",
 		"lookupValue": "status",
         "pause": "100",
-		"contents": "HTTP/1.1 200 OK\nContent-Length: %Content-Length%\nConnection: close\nContent-Type: %Content-Type%\n\n{\"response\": [{\"status\": \"OK\",\"message\": \"TNS Account Service/CAM Stub - status OK\",\"version\": \"%httpVersion%\",\"timestamp\": \"%todaysDate%\",\"GUID\": \"%GUID%\",\"Number\": \"%tokenNumber%\",\"AlphaNumer\": \"%sessionId%\"}]}"
+		"contents": "HTTP/1.1 200 OK\nContent-Length: %Content-Length%\nConnection: %Connection%\nContent-Type: %Content-Type%\nDate: %todaysDate%\n\n{\"response\": [{\"status\": \"OK\",\"message\": \"%stubName% - status OK\",\"version\": \"%stubVersion%\",\"timestamp\": \"%todaysDate%\",\"GUID\": \"%GUID%\",\"Session Number\": \"%sessionId%\"}]}"
 	},
 	{
         "name": "01-create-session",
@@ -42,6 +42,40 @@
 		"callForwardType": "GET",
 		"callForwardBody": "test message",
 		"contents": "HTTP/1.1 200 OK\nContent-Length: %Content-Length%\nConnection: close\nContent-Type: %Content-Type%\n\n{\"result\": \"%status%\",\"session\": {\"aes256Key\": \"%AlphaNumer%\",\"updateStatus\": \"NO_UPDATE\",\"authenticationLimit\": 5,\"id\": \"%sessionId%\",\"version\": \"872ec53701\"},\"merchant\": \"TESTKENOCOM01\"}"
+	},
+	{
+        "name": "02-generate_token",
+		"type": "path",
+		"lookupWith": "regex",
+		"lookupValue": "oauth/token",
+        "pause": "100",
+		"contents": "HTTP/1.1 200 OK\nContent-Length: %Content-Length%\nConnection: close\nContent-Type: %Content-Type%\n\n{\"access_token\":\"%access_token%\",\"scope\":\"openid profile email read:current_user update:current_user_metadata delete:current_user_metadata create:current_user_metadata create:current_user_device_credentials delete:current_user_device_credentials update:current_user_identities\",\"expires_in\":8400,\"token_type\": \"Bearer\"}"
+	},
+	{
+        "name": "01-start-passwordless",
+		"type": "path",
+		"lookupWith": "regex",
+		"lookupValue": "passwordless/start",
+        "pause": "100",
+		"contents": "HTTP/1.1 200 OK\nContent-Length: %Content-Length%\nConnection: close\nContent-Type: %Content-Type%\n\n{\"_id\": \"%userId%\",\"email\": \"%emailAddress%\",\"email_verified\": false}"
+	},
+	{
+        "name": "03_get_user_by_email",
+		"type": "path",
+		"lookupWith": "regex",
+		"lookupValue": "users-by-email",
+        "pause": "100",
+		"contents": "HTTP/1.1 200 OK\nContent-Length: %Content-Length%\nConnection: close\nContent-Type: %Content-Type%\n\n{\"created_at\": \"%created_at%\",\"email\": \"%emailAddressGetUser%\",\"email_verified\": true,\"identities\": [{\"user_id\": \"%redisUserId%\",\"provider\": \"email\",\"connection\": \"email\",\"isSocial\": false}],\"name\": \"%emailName%\",\"nickname\": \"%emailName%\",\"picture\": \"https://s.gravatar.com/avatar/3e274a91d5bb939b24d7f23b5aac9d45?s=480&r=pg&d=https%3A%2F%2Fcdn.auth0.com%2Favatars%2Fja.png\",\"updated_at\": \"2023-04-09T07:49:59.468Z\",\"user_id\": \"email|%redisUserId%\",\"last_ip\": \"127.0.0.1\",\"last_login\": \"2023-04-09T07:49:59.468Z\",\"logins_count\": 1}"
+	},
+	{
+        "name": "01-default",
+		"comment": "REQUIRED: Captures any message that is not recognised and sends back a 404 Not found.",
+		"type": "path",
+		"lookupWith": "regex",
+		"lookupValue": "HTTP",
+        "pause": "100",
+		"contents": "HTTP/1.1 404 NOT FOUND\nContent-Length: %Content-Length%\nConnection: close\nContent-Type: %Content-Type%\n\n{\"response\": [{\"status\": \"404 Not Found\",\"version\": \"%stubName%\",\"timestamp\": \"%todaysDate%\",\"Inbound Message\": \"%00-default-response-message%\"}]}"
 	}
+	
 	]
 }

@@ -48,6 +48,8 @@ public class httpStubWorker extends stubWorker implements Runnable {
 
   public void run() {
     logger logger = new logger();
+
+
     logger.debug("httpStubWorker: processing connection....",config.getLoglevel());
     PrintWriter out = null;
     BufferedReader in = null;
@@ -88,6 +90,8 @@ public class httpStubWorker extends stubWorker implements Runnable {
           logger.debug("httpStubWorker: Processing: firstLine: " + firstLine,config.getLoglevel());
           lineCntr++;
         }
+        logger.debug("httpStubWorker: Processing: Subsequent: " + searchLine,config.getLoglevel());
+
         inputMsgLines.addElement(searchLine);
         /*
          * get the content length for put post messages if required.
@@ -106,7 +110,7 @@ public class httpStubWorker extends stubWorker implements Runnable {
     // based on the content length
     String postLine = null;
     try {
-      if (!firstLine.contains("GET")) {
+      if (postLength > 0) {
         postLine = inStream.readLine(postLength);
         inputMsgLines.addElement(postLine);
       }
@@ -141,9 +145,9 @@ public class httpStubWorker extends stubWorker implements Runnable {
     //
     // loop through input message for variable extraction
     //
-    logger.debug("httpStubWorker: responseMsg: " + responseMsg,config.getLoglevel());
-    responseMsg = processVariables(inputMsgLines.toString(), dataVariableArray, responseMsg, config);
 
+    responseMsg = processVariables(inputMsgLines.toString(), dataVariableArray, responseMsg, config);
+    logger.debug("httpStubWorker: responseMsg: " + responseMsg,config.getLoglevel());
     // if theres a http response code other than 200 then replace it here
     if (!httpRespCode.contains("200")) {
       responseMsg = responseMsg.replace("200 OK", httpRespCode);
@@ -153,7 +157,7 @@ public class httpStubWorker extends stubWorker implements Runnable {
     // need to process the content length AFTER all other replacements are done
     String contentLength = processContentLengthType(responseMsg, config);
     responseMsg = responseMsg.replace("%Content-Length%", contentLength);
-
+    logger.debug("httpStubWorker: responseMsg: " + responseMsg,config.getLoglevel());
     //
     // time to write the output
     //
